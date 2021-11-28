@@ -12,12 +12,12 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 import java.util.List;
 import java.util.Timer;
 
@@ -50,13 +50,17 @@ public class MatchPair extends AppFrame {
     private AppButton btnStart, btnStop, btnPause, btnExit;
     private AppLabel lblTime, lblScore;
     private AppTable tblTopScore, tblRecentScore;
-    private AppPanel buttonsPanel;
+    private AppPanel topPanel, buttonsPanel;
     private List<Timer> timers = new ArrayList<>();
     private Timer timerScore = null;
+    private ColorsNFonts[] appColors = SwingUtils.getFilteredCnF(false);
 
     private Status gameStatus = Status.NOT_STARTED;
-    private String username;
-    private int gameLevel;
+    private String username, fontName;
+    private int gameLevel, cnfIdx = 0;
+
+    private JComponent[] componentsToColor;
+    private final String TITLE_HEADING = "Controls";
     private final int GAME_TIME_SEC = 120;
 
     public static void main(String[] args) {
@@ -93,14 +97,9 @@ public class MatchPair extends AppFrame {
         Container parentContainer = getContentPane();
         parentContainer.setLayout(new BorderLayout());
 
-        menu = new AppMenu("Settings");
-        menu.add(SwingUtils.getColorsMenu(true, true,
-                true, true, false, this, logger));
-        menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
-
-        AppPanel topPanel = new AppPanel(new BorderLayout());
+        topPanel = new AppPanel(new BorderLayout());
         AppToolBar tbControls = new AppToolBar();
-        titledBorder = SwingUtils.createTitledBorder("Controls", fg);
+        titledBorder = SwingUtils.createTitledBorder(TITLE_HEADING, fg);
         topPanel.setBorder(titledBorder);
         UIName uin = UIName.BTN_START;
         btnStart = new AppButton(uin.name, uin.mnemonic, uin.tip);
@@ -116,18 +115,24 @@ public class MatchPair extends AppFrame {
         lblScore = new AppLabel(uin.name, uin.mnemonic, uin.tip);
         lblScore.setHorizontalAlignment(SwingConstants.CENTER);
         btnPause.addActionListener(e -> startGame());
-        createBorders();
+        uin = UIName.MENU;
+        menu = new AppMenu(uin.name, uin.mnemonic, uin.tip);
+        menu.add(SwingUtils.getColorsMenu(true, true,
+                true, true, false, this, logger));
+        menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
+
         tbControls.add(btnStart);
         tbControls.add(btnPause);
         tbControls.add(lblTime);
         tbControls.add(lblScore);
         JMenuBar menuBar = new JMenuBar();
         menuBar.add(menu);
-        menuBar.setAlignmentX(SwingUtilities.CENTER);
+        menu.setAlignmentX(SwingUtilities.CENTER);
+        menu.setSize(menuBar.getSize());
         tbControls.add(menuBar);
         tbControls.add(btnExit);
         tbControls.setLayout(new GridLayout(1, tbControls.getComponentCount()));
-        tbControls.setMargin(new Insets(0, 3, 0, 3));
+        tbControls.setMargin(new Insets(1, 3, 1, 3));
         topPanel.add(tbControls);
         topPanel.setSize(topPanel.getWidth(), 100);
         topPanel.setBorder(SwingUtils.createLineBorder(Color.BLUE));
@@ -139,6 +144,24 @@ public class MatchPair extends AppFrame {
         parentContainer.add(topPanel, BorderLayout.NORTH);
         parentContainer.add(centerPanel, BorderLayout.CENTER);
 
+        String[] topScoreCols = new String[]{"Top Score", "User", "Date"};
+        String[] recentScoreCols = new String[]{"Recent Score", "User", "Date"};
+        DefaultTableModel topScoreModel = SwingUtils.getTableModel(topScoreCols);
+        DefaultTableModel recentScoreModel = SwingUtils.getTableModel(recentScoreCols);
+        AppTable tblTopScore = new AppTable(topScoreModel);
+        AppTable tblRecentScore = new AppTable(recentScoreModel);
+        setTable (tblTopScore, topScoreModel);
+        setTable (tblRecentScore, recentScoreModel);
+        AppPanel tblPanel = new AppPanel(new GridLayout(2, 1));
+        tblPanel.add(new JScrollPane(tblTopScore));
+        tblPanel.add(new JScrollPane(tblRecentScore));
+        tblPanel.setBorder(EMPTY_BORDER);
+        centerPanel.add(tblPanel, BorderLayout.WEST);
+
+        componentsToColor = new JComponent[]{btnStart, btnPause, lblTime, lblScore,
+                menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader()};
+        colorChange(1);
+        //changeAppColor();
         setControlsToEnable();
         addBindings();
 
@@ -146,6 +169,60 @@ public class MatchPair extends AppFrame {
         setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         enableControls();
+    }
+
+    private void setTable(AppTable tbl, DefaultTableModel model) {
+        tbl.setScrollProps();
+        tbl.setRowHeight(appFontSize + 4);
+        tbl.setBorder(EMPTY_BORDER);
+        SwingUtils.removeAndCreateEmptyRows(3, 5, model);
+    }
+
+    public void changeAppFont() {
+        SwingUtils.applyAppFont(this, appFontSize, this, logger);
+    }
+
+    // This will be called by reflection from SwingUI jar
+    public void appFontChanged(Integer fs) {
+        appFontSize = fs;
+        logger.info("Application font changed to " + Utils.addBraces(fs));
+
+        TitledBorder[] borders = {titledBorder};
+        Arrays.stream(borders).forEach(t -> t.setTitleFont(SwingUtils.getNewFontSize(t.getTitleFont(), fs)));
+        // calling to change tooltip font
+        changeAppColor();
+    }
+
+    // This will be called by reflection from SwingUI jar
+    public void colorChange(Integer x) {
+        //if (isWindowActive())
+        {
+            cnfIdx = x;
+            ColorsNFonts c = appColors[cnfIdx];
+            bg = c.getBk();
+            fg = c.getFg(); // foreground not working with highlighter //c.getFg();
+            hbg = c.getSelbk();
+            hfg = c.getSelfg();
+            fontName = c.getFont();
+            changeAppColor();
+        }
+    }
+
+    private void changeAppColor() {
+        createBorders();
+        titledBorder = SwingUtils.createTitledBorder(TITLE_HEADING, fg);
+        TitledBorder[] toTitleColor = {titledBorder};
+        Arrays.stream(toTitleColor).forEach(t -> t.setTitleColor(fg));
+        topPanel.setBorder(titledBorder);
+
+        Arrays.stream(componentsToColor).forEach(c -> c.setBorder(SwingUtils.createLineBorder(fg)));
+        SwingUtils.setComponentColor(componentsToColor, bg, fg, hbg, hfg);
+        // to make exit button different
+        SwingUtils.setComponentColor(btnExit, hbg, hfg, bg, fg);
+        Arrays.stream(componentsToColor).forEach(c ->
+                SwingUtils.applyTooltipColorNFont(c, bg, fg, SwingUtils.getNewFont(c.getFont(), fontName)));
+        // will set colors for pwd screens
+        setAppColors(fg, bg, hfg, hbg);
     }
 
     private void createButtons() {
@@ -169,8 +246,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void createBorders() {
-        JComponent[] ca = {btnStart, btnPause, lblTime, lblScore, btnExit};
-        Arrays.stream(ca).forEach(c -> c.setBorder(SwingUtils.createLineBorder()));
+        Arrays.stream(componentsToColor).forEach(c -> c.setBorder(SwingUtils.createLineBorder(bg)));
     }
 
     private void startGame() {
