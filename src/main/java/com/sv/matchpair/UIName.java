@@ -6,7 +6,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum UIName {
-    BTN_CANCEL("", 'C', "Cancel/Stop Search/Read");
+    BTN_START("Start", 's', "Start/Stop the game"),
+    BTN_PAUSE("Pause", 'p', "Pause/Resume the game"),
+    LBL_SCORE("Score", 'l', "Score of the game"),
+    LBL_TIME("Time", 'm', "Time remaining of the game");
 
     String name, tip;
     char mnemonic;
