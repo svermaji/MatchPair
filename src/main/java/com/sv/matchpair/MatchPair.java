@@ -57,7 +57,7 @@ public class MatchPair extends AppFrame {
     private AppMenu menu;
     private AppButton btnStart, btnUser, btnPause, btnExit;
     private AppLabel lblTime, lblScore;
-    private AppTable tblTopScore, tblRecentScore;
+    private AppTable tblTopScore, tblRecentScore, tblUsers;
     private AppPanel topPanel, buttonsPanel;
     private List<Timer> timers = new ArrayList<>();
     private Timer timerScore = null;
@@ -162,20 +162,27 @@ public class MatchPair extends AppFrame {
 
         String[] topScoreCols = new String[]{"Top Score", "User", "Date"};
         String[] recentScoreCols = new String[]{"Recent Score", "User", "Date"};
+        String[] userCols = new String[]{"Users"};
         DefaultTableModel topScoreModel = SwingUtils.getTableModel(topScoreCols);
         DefaultTableModel recentScoreModel = SwingUtils.getTableModel(recentScoreCols);
-        AppTable tblTopScore = new AppTable(topScoreModel);
-        AppTable tblRecentScore = new AppTable(recentScoreModel);
+        DefaultTableModel userModel = SwingUtils.getTableModel(userCols);
+        tblTopScore = new AppTable(topScoreModel);
+        tblRecentScore = new AppTable(recentScoreModel);
+        tblUsers = new AppTable(userModel);
         setTable(tblTopScore, topScoreModel);
         setTable(tblRecentScore, recentScoreModel);
-        AppPanel tblPanel = new AppPanel(new GridLayout(2, 1));
+        setTable(tblUsers, userModel);
+        AppPanel tblPanel = new AppPanel(new GridLayout(3, 1));
+        tblPanel.add(new JScrollPane(tblUsers));
         tblPanel.add(new JScrollPane(tblTopScore));
         tblPanel.add(new JScrollPane(tblRecentScore));
         tblPanel.setBorder(EMPTY_BORDER);
         centerPanel.add(tblPanel, BorderLayout.WEST);
 
         componentsToColor = new JComponent[]{btnUser, btnStart, btnPause, lblTime, lblScore,
-                menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader()};
+                menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
+                tblUsers.getTableHeader()
+        };
         colorChange(cnfIdx);
         setControlsToEnable();
         addBindings();
@@ -185,6 +192,7 @@ public class MatchPair extends AppFrame {
 
         enableControls();
         changeAppFont();
+        SwingUtils.getInFocus(btnStart);
     }
 
     private void loadGameConfigs() {
@@ -203,8 +211,9 @@ public class MatchPair extends AppFrame {
     private GameInfo makeGameInfoObj(Properties props) {
         GameInfo gameInfo = new GameInfo();
         gameInfo.setGameLevel(props.getProperty("game-level"));
-        gameInfo.setRows(Utils.convertToInt(props.getProperty("rows"), 6));
-        gameInfo.setCols(Utils.convertToInt(props.getProperty("cols"), 5));
+        gameInfo.setMatchScore(Utils.convertToInt(props.getProperty("match-score")));
+        gameInfo.setRows(Utils.convertToInt(props.getProperty("rows")));
+        gameInfo.setCols(Utils.convertToInt(props.getProperty("cols")));
         List<String> colorProps = new ArrayList<>();
         List<Color> colors = new ArrayList<>();
         props.stringPropertyNames().forEach(p -> {
@@ -215,8 +224,12 @@ public class MatchPair extends AppFrame {
         // should be in format <R,G,B>
         colorProps.forEach(cs -> {
             String[] arr = cs.split(Constants.COMMA);
-            colors.add(new Color(Utils.convertToInt(arr[0]),
-                    Utils.convertToInt(arr[1]), Utils.convertToInt(arr[2])));
+            if (arr.length==3) {
+                colors.add(new Color(Utils.convertToInt(arr[0]),
+                        Utils.convertToInt(arr[1]), Utils.convertToInt(arr[2])));
+            } else {
+                colors.add(AppUtils.getColor (cs));
+            }
         });
         gameInfo.setColors(colors.toArray(new Color[0]));
         return gameInfo;
@@ -235,7 +248,7 @@ public class MatchPair extends AppFrame {
         tbl.setScrollProps();
         tbl.setRowHeight(appFontSize + 4);
         tbl.setBorder(EMPTY_BORDER);
-        SwingUtils.removeAndCreateEmptyRows(3, 5, model);
+        SwingUtils.removeAndCreateEmptyRows(model.getColumnCount(), 5, model);
     }
 
     public void changeAppFont() {
@@ -296,9 +309,10 @@ public class MatchPair extends AppFrame {
         int gap = 50;
         Border EMPTY_BORDER = new EmptyBorder(new Insets(gap, gap, gap, gap));
         btns.setBorder(EMPTY_BORDER);
+        AppUtils.prepareGameButtons(gi);
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                btns.add(new GameButton(i + Constants.DASH + j));
+                btns.add(new GameButton(i + Constants.DASH + j, Color.blue));
             }
         }
 
