@@ -4,6 +4,7 @@ import com.sv.core.Constants;
 import com.sv.core.Utils;
 import com.sv.core.config.DefaultConfigs;
 import com.sv.core.logger.MyLogger;
+import com.sv.matchpair.task.AppFontChangerTask;
 import com.sv.swingui.KeyActionDetails;
 import com.sv.swingui.SwingUtils;
 import com.sv.swingui.component.*;
@@ -27,6 +28,8 @@ import java.util.List;
 import java.util.Timer;
 import java.util.stream.Stream;
 
+import static com.sv.core.Constants.SEC_1;
+import static com.sv.matchpair.AppConstants.GAME_CHARS;
 import static com.sv.swingui.UIConstants.*;
 
 /**
@@ -41,7 +44,7 @@ public class MatchPair extends AppFrame {
      * e.g. if enum is Xyz then when storing getXyz will be called
      */
     public enum Configs {
-        AppFontSize, CNFIdx, Username
+        AppFontSize, GameBtnFontSize, CNFIdx, Username
     }
 
     public enum Status {
@@ -58,19 +61,19 @@ public class MatchPair extends AppFrame {
     private AppButton btnStart, btnUser, btnPause, btnExit;
     private AppLabel lblTime, lblScore;
     private AppTable tblTopScore, tblRecentScore, tblUsers;
-    private AppPanel topPanel, buttonsPanel;
+    private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel;
     private List<Timer> timers = new ArrayList<>();
     private Timer timerScore = null;
     private ColorsNFonts[] appColors = SwingUtils.getFilteredCnF(false);
 
     private Status gameStatus = Status.NOT_STARTED;
     private String username, fontName;
-    private int gameLevel = 1, cnfIdx = 0;
+    private int gameLevel = 1, cnfIdx = 0, gameBtnFontSize;
 
     private JComponent[] componentsToColor;
     private final String TITLE_HEADING = "Controls";
     private final String GAME_CONFIGS_LOC = "./src/main/resources/game-configs";
-    private final int GAME_TIME_SEC = 120;
+    private final int GAME_TIME_SEC = 80;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new MatchPair().initComponents());
@@ -153,7 +156,7 @@ public class MatchPair extends AppFrame {
         topPanel.setSize(topPanel.getWidth(), 100);
         topPanel.setBorder(SwingUtils.createLineBorder(Color.BLUE));
 
-        AppPanel centerPanel = new AppPanel(new BorderLayout());
+        centerPanel = new AppPanel(new BorderLayout());
         buttonsPanel = new AppPanel();
         createButtons();
         centerPanel.add(buttonsPanel);
@@ -187,12 +190,15 @@ public class MatchPair extends AppFrame {
         setControlsToEnable();
         addBindings();
 
+        maximiseWin ();
+        enableControls();
+        SwingUtils.getInFocus(btnStart);
+        new Timer().schedule(new AppFontChangerTask(this), SEC_1);
+    }
+
+    private void maximiseWin() {
         setToCenter();
         setExtendedState(JFrame.MAXIMIZED_BOTH);
-
-        enableControls();
-        changeAppFont();
-        SwingUtils.getInFocus(btnStart);
     }
 
     private void loadGameConfigs() {
@@ -224,11 +230,11 @@ public class MatchPair extends AppFrame {
         // should be in format <R,G,B>
         colorProps.forEach(cs -> {
             String[] arr = cs.split(Constants.COMMA);
-            if (arr.length==3) {
+            if (arr.length == 3) {
                 colors.add(new Color(Utils.convertToInt(arr[0]),
                         Utils.convertToInt(arr[1]), Utils.convertToInt(arr[2])));
             } else {
-                colors.add(AppUtils.getColor (cs));
+                colors.add(AppUtils.getColor(cs));
             }
         });
         gameInfo.setColors(colors.toArray(new Color[0]));
@@ -239,9 +245,12 @@ public class MatchPair extends AppFrame {
         cnfIdx = configs.getIntConfig(Configs.CNFIdx.name());
         appFontSize = configs.getIntConfig(Configs.AppFontSize.name());
         username = configs.getConfig(Configs.Username.name());
-        logger.info("All configs: cnfIdx " + Utils.addBraces(cnfIdx) +
-                ", appFontSize " + Utils.addBraces(appFontSize) +
-                ", username " + Utils.addBraces(username));
+//        gameBtnFontSize = configs.getIntConfig(Configs.GameBtnFontSize.name());
+        gameBtnFontSize = 40;
+        logger.info("All configs: cnfIdx [" + cnfIdx +
+                "], appFontSize [" + appFontSize +
+                "], gameBtnFontSize [" + gameBtnFontSize +
+                "], username " + Utils.addBraces(username));
     }
 
     private void setTable(AppTable tbl, DefaultTableModel model) {
@@ -251,8 +260,13 @@ public class MatchPair extends AppFrame {
         SwingUtils.removeAndCreateEmptyRows(model.getColumnCount(), 5, model);
     }
 
+    public void changeGameBtnFont() {
+        SwingUtils.changeFont(btnsPanel, gameBtnFontSize);
+    }
+
     public void changeAppFont() {
         SwingUtils.applyAppFont(this, appFontSize, this, logger);
+        changeGameBtnFont();
     }
 
     // This will be called by reflection from SwingUI jar
@@ -304,19 +318,32 @@ public class MatchPair extends AppFrame {
         int cols = gi.getCols();
         BoxLayout boxlayout = new BoxLayout(buttonsPanel, BoxLayout.Y_AXIS);
         buttonsPanel.setLayout(boxlayout);
-        AppPanel btns = new AppPanel(new GridLayout(rows, cols));
+        if (btnsPanel != null) {
+            buttonsPanel.remove(btnsPanel);
+            btnsPanel.removeAll();
+            btnsPanel.repaint();
+        }
+        btnsPanel = new AppPanel(new GridLayout(rows, cols));
 
         int gap = 50;
-        Border EMPTY_BORDER = new EmptyBorder(new Insets(gap, gap, gap, gap));
-        btns.setBorder(EMPTY_BORDER);
-        AppUtils.prepareGameButtons(gi);
-        for (int i = 0; i < rows; i++) {
-            for (int j = 0; j < cols; j++) {
-                btns.add(new GameButton(i + Constants.DASH + j, Color.blue));
+        btnsPanel.setBorder(new EmptyBorder(new Insets(gap, gap, gap, gap)));
+        // randomize buttons
+        List<GameButton> gameBtns = AppUtils.prepareGameButtons(gi);
+        List<GameButton> gameBtnsRandomize = new ArrayList<>();
+        long time = Utils.getNowMillis();
+        Random rand = new Random();
+        int sz = gameBtns.size();
+        while (gameBtnsRandomize.size() < sz) {
+            GameButton gb = gameBtns.get(rand.nextInt(sz));
+            if (!gameBtnsRandomize.contains(gb)) {
+                gameBtnsRandomize.add(gb);
             }
         }
-
-        buttonsPanel.add(btns);
+        logger.info("Time taken to randomization " + Utils.getTimeDiffSecMilliStr(time));
+        gameBtnsRandomize.forEach(btnsPanel::add);
+        changeGameBtnFont();
+        buttonsPanel.add(btnsPanel);
+        SwingUtilities.updateComponentTreeUI(buttonsPanel);
     }
 
     private GameInfo getGameInfoFor(int gameLevel) {
@@ -331,7 +358,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void startGame() {
-
+        createButtons();
     }
 
     /**
@@ -384,6 +411,10 @@ public class MatchPair extends AppFrame {
 
     public String getCNFIdx() {
         return cnfIdx + "";
+    }
+
+    public String getGameBtnFontSize() {
+        return gameBtnFontSize + "";
     }
 
     public String getUsername() {

@@ -12,7 +12,7 @@ import static com.sv.matchpair.AppConstants.*;
 
 public final class AppUtils {
 
-    private static Map<Integer, List<Integer[]>> gameSequences = new ConcurrentHashMap<>();
+    private static final Map<Integer, List<Integer[]>> gameSequences = new ConcurrentHashMap<>();
 
     private AppUtils() {
     }
@@ -54,24 +54,21 @@ public final class AppUtils {
                 chList.add(ch);
             }
         }
+        int x = 0;
+        for (int i = 0; i < PAIRS_COUNT; i++) {
+            chList.add(x, chList.get(x));
+            int seqE = seq[i];
+            x += seqE;
+        }
         AtomicInteger k = new AtomicInteger();
         AtomicInteger t = new AtomicInteger();
-        AtomicInteger p = new AtomicInteger();
-        // todo check it
+        // first 3 element in sequence must be > 2
         Arrays.stream(seq).forEach(i -> {
             for (int j = 0; j < i; j++) {
-                list.add(new GameButton(chList.get(t.intValue()) + Constants.EMPTY,
+                list.add(new GameButton(chList.get(t.getAndIncrement()) + Constants.EMPTY,
                         gi.getColors()[k.intValue()]));
             }
             k.getAndIncrement();
-            t.getAndIncrement();
-            if (p.intValue() < PAIRS_COUNT) {
-                list.add(new GameButton(chList.get(t.intValue()) + Constants.EMPTY,
-                        gi.getColors()[k.intValue()]));
-            }
-            p.getAndIncrement();
-            k.getAndIncrement();
-            t.getAndIncrement();
         });
 
         return list;
