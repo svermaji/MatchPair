@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public enum UIName {
+    BTN_USER("Hi", 'u', "Username"),
     BTN_START("Start", 's', "Start/Stop the game"),
     BTN_PAUSE("Pause", 'p', "Pause/Resume the game"),
     LBL_SCORE("Score", 'l', "Score of the game"),

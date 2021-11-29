@@ -1,5 +1,6 @@
 package com.sv.matchpair;
 
+import com.sv.core.Constants;
 import com.sv.core.Utils;
 import com.sv.core.config.DefaultConfigs;
 import com.sv.core.logger.MyLogger;
@@ -17,9 +18,13 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 import java.util.Timer;
+import java.util.stream.Stream;
 
 import static com.sv.swingui.UIConstants.*;
 
@@ -35,7 +40,7 @@ public class MatchPair extends AppFrame {
      * e.g. if enum is Xyz then when storing getXyz will be called
      */
     public enum Configs {
-        AppFontSize
+        AppFontSize, CNFIdx, Username
     }
 
     public enum Status {
@@ -44,10 +49,12 @@ public class MatchPair extends AppFrame {
 
     private MyLogger logger;
     private DefaultConfigs configs;
+    private Map<String, GameInfo> gameInfos;
 
     private TitledBorder titledBorder;
+    private JMenuBar menuBar;
     private AppMenu menu;
-    private AppButton btnStart, btnStop, btnPause, btnExit;
+    private AppButton btnStart, btnUser, btnPause, btnExit;
     private AppLabel lblTime, lblScore;
     private AppTable tblTopScore, tblRecentScore;
     private AppPanel topPanel, buttonsPanel;
@@ -57,10 +64,11 @@ public class MatchPair extends AppFrame {
 
     private Status gameStatus = Status.NOT_STARTED;
     private String username, fontName;
-    private int gameLevel, cnfIdx = 0;
+    private int gameLevel = 1, cnfIdx = 0;
 
     private JComponent[] componentsToColor;
     private final String TITLE_HEADING = "Controls";
+    private final String GAME_CONFIGS_LOC = "./src/main/resources/game-configs";
     private final int GAME_TIME_SEC = 120;
 
     public static void main(String[] args) {
@@ -77,6 +85,9 @@ public class MatchPair extends AppFrame {
     private void initComponents() {
         logger = MyLogger.createLogger(getClass());
         configs = new DefaultConfigs(logger, Utils.getConfigsAsArr(Configs.class));
+        loadConfigValues();
+        gameInfos = new HashMap<>();
+        loadGameConfigs();
         logger.setSimpleClassName(true);
 
         super.setLogger(logger);
@@ -101,7 +112,10 @@ public class MatchPair extends AppFrame {
         AppToolBar tbControls = new AppToolBar();
         titledBorder = SwingUtils.createTitledBorder(TITLE_HEADING, fg);
         topPanel.setBorder(titledBorder);
-        UIName uin = UIName.BTN_START;
+        UIName uin = UIName.BTN_USER;
+        btnUser = new AppButton(uin.name + Constants.SPACE + username, uin.mnemonic, uin.tip);
+        btnUser.addActionListener(e -> startGame());
+        uin = UIName.BTN_START;
         btnStart = new AppButton(uin.name, uin.mnemonic, uin.tip);
         btnStart.addActionListener(e -> startGame());
         uin = UIName.BTN_PAUSE;
@@ -121,11 +135,12 @@ public class MatchPair extends AppFrame {
                 true, true, false, this, logger));
         menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
 
+        tbControls.add(btnUser);
         tbControls.add(btnStart);
         tbControls.add(btnPause);
         tbControls.add(lblTime);
         tbControls.add(lblScore);
-        JMenuBar menuBar = new JMenuBar();
+        menuBar = new JMenuBar();
         menuBar.add(menu);
         menu.setAlignmentX(SwingUtilities.CENTER);
         menu.setSize(menuBar.getSize());
@@ -150,18 +165,17 @@ public class MatchPair extends AppFrame {
         DefaultTableModel recentScoreModel = SwingUtils.getTableModel(recentScoreCols);
         AppTable tblTopScore = new AppTable(topScoreModel);
         AppTable tblRecentScore = new AppTable(recentScoreModel);
-        setTable (tblTopScore, topScoreModel);
-        setTable (tblRecentScore, recentScoreModel);
+        setTable(tblTopScore, topScoreModel);
+        setTable(tblRecentScore, recentScoreModel);
         AppPanel tblPanel = new AppPanel(new GridLayout(2, 1));
         tblPanel.add(new JScrollPane(tblTopScore));
         tblPanel.add(new JScrollPane(tblRecentScore));
         tblPanel.setBorder(EMPTY_BORDER);
         centerPanel.add(tblPanel, BorderLayout.WEST);
 
-        componentsToColor = new JComponent[]{btnStart, btnPause, lblTime, lblScore,
-                menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader()};
-        colorChange(1);
-        //changeAppColor();
+        componentsToColor = new JComponent[]{btnUser, btnStart, btnPause, lblTime, lblScore,
+                menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader()};
+        colorChange(cnfIdx);
         setControlsToEnable();
         addBindings();
 
@@ -169,6 +183,51 @@ public class MatchPair extends AppFrame {
         setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         enableControls();
+        changeAppFont();
+    }
+
+    private void loadGameConfigs() {
+        try {
+            Stream<Path> paths = Files.list(Utils.createPath(GAME_CONFIGS_LOC));
+            paths.forEach(p -> {
+                GameInfo gi = makeGameInfoObj(Utils.readPropertyFile(p.toAbsolutePath().toString(), logger));
+                gameInfos.put(gi.getGameLevel(), gi);
+            });
+        } catch (IOException e) {
+            logger.error("Unable to load game config from " + Utils.addBraces(GAME_CONFIGS_LOC));
+        }
+        logger.info("Game configs load as " + gameInfos);
+    }
+
+    private GameInfo makeGameInfoObj(Properties props) {
+        GameInfo gameInfo = new GameInfo();
+        gameInfo.setGameLevel(props.getProperty("game-level"));
+        gameInfo.setRows(Utils.convertToInt(props.getProperty("rows"), 6));
+        gameInfo.setCols(Utils.convertToInt(props.getProperty("cols"), 5));
+        List<String> colorProps = new ArrayList<>();
+        List<Color> colors = new ArrayList<>();
+        props.stringPropertyNames().forEach(p -> {
+            if (p.startsWith("color-")) {
+                colorProps.add(props.getProperty(p));
+            }
+        });
+        // should be in format <R,G,B>
+        colorProps.forEach(cs -> {
+            String[] arr = cs.split(Constants.COMMA);
+            colors.add(new Color(Utils.convertToInt(arr[0]),
+                    Utils.convertToInt(arr[1]), Utils.convertToInt(arr[2])));
+        });
+        gameInfo.setColors(colors.toArray(new Color[0]));
+        return gameInfo;
+    }
+
+    private void loadConfigValues() {
+        cnfIdx = configs.getIntConfig(Configs.CNFIdx.name());
+        appFontSize = configs.getIntConfig(Configs.AppFontSize.name());
+        username = configs.getConfig(Configs.Username.name());
+        logger.info("All configs: cnfIdx " + Utils.addBraces(cnfIdx) +
+                ", appFontSize " + Utils.addBraces(appFontSize) +
+                ", username " + Utils.addBraces(username));
     }
 
     private void setTable(AppTable tbl, DefaultTableModel model) {
@@ -226,9 +285,9 @@ public class MatchPair extends AppFrame {
     }
 
     private void createButtons() {
-        gameLevel = 1;
-        int rows = 6;
-        int cols = 6;
+        GameInfo gi = getGameInfoFor(gameLevel);
+        int rows = gi.getRows();
+        int cols = gi.getCols();
         BoxLayout boxlayout = new BoxLayout(buttonsPanel, BoxLayout.Y_AXIS);
         buttonsPanel.setLayout(boxlayout);
         AppPanel btns = new AppPanel(new GridLayout(rows, cols));
@@ -243,6 +302,13 @@ public class MatchPair extends AppFrame {
         }
 
         buttonsPanel.add(btns);
+    }
+
+    private GameInfo getGameInfoFor(int gameLevel) {
+        GameInfo gi = gameInfos.containsKey(gameLevel + "") ?
+                gameInfos.get(gameLevel + "") : gameInfos.get("default");
+        logger.info("Returning game info for level " + Utils.addBraces(gameLevel) + " as " + gi);
+        return gi;
     }
 
     private void createBorders() {
@@ -271,9 +337,11 @@ public class MatchPair extends AppFrame {
 
     private void setControlsToEnable() {
         Component[] components = {
+                btnUser, btnStart, lblTime, lblScore,
+                menuBar, menu
         };
         setComponentToEnable(components);
-        setComponentContrastToEnable(new Component[]{});
+        setComponentContrastToEnable(new Component[]{btnPause});
         enableControls();
     }
 
@@ -293,5 +361,17 @@ public class MatchPair extends AppFrame {
         keyActionDetails.add(new KeyActionDetails(KS_CTRL_F, actionTxtSearch));
 
         SwingUtils.addKeyBindings(addBindingsTo, keyActionDetails);
+    }
+
+    public String getAppFontSize() {
+        return appFontSize + "";
+    }
+
+    public String getCNFIdx() {
+        return cnfIdx + "";
+    }
+
+    public String getUsername() {
+        return username;
     }
 }
