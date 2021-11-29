@@ -5,5 +5,5 @@ public final class AppConstants {
     private AppConstants() {
     }
 
-    public static final long HELP_COLOR_CHANGE_SEC = 10;
+    public static final long GAME_COLOR_SEQUENCE = 10;
 }

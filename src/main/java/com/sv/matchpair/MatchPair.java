@@ -12,6 +12,7 @@ import com.sv.swingui.component.table.AppTable;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
@@ -292,12 +293,12 @@ public class MatchPair extends AppFrame {
         buttonsPanel.setLayout(boxlayout);
         AppPanel btns = new AppPanel(new GridLayout(rows, cols));
 
-        int gap = 20;
+        int gap = 50;
         Border EMPTY_BORDER = new EmptyBorder(new Insets(gap, gap, gap, gap));
         btns.setBorder(EMPTY_BORDER);
         for (int i = 0; i < rows; i++) {
             for (int j = 0; j < cols; j++) {
-                btns.add(new AppButton(i + "-" + j));
+                btns.add(new GameButton(i + Constants.DASH + j));
             }
         }
 
