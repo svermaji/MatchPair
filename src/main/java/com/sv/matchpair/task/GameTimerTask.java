@@ -16,7 +16,9 @@ public class GameTimerTask extends TimerTask {
     @Override
     public void run() {
         do {
-            mp.updateGameTime();
+            if (mp.isGameStart()) {
+                mp.updateGameTime();
+            }
             Utils.sleep1Sec();
         } while (mp.isGameRunning());
     }

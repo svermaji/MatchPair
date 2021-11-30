@@ -13,19 +13,15 @@ import com.sv.swingui.component.table.AppTable;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 import java.util.Timer;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 import static com.sv.core.Constants.SEC_1;
 import static com.sv.core.Constants.SPACE;
@@ -56,6 +52,7 @@ public class MatchPair extends AppFrame {
     private MyLogger logger;
     private DefaultConfigs configs;
     private Map<String, GameInfo> gameInfos;
+    private Map<String, GameScores> gameScores;
 
     private TitledBorder titledBorder;
     private JMenuBar menuBar;
@@ -72,12 +69,13 @@ public class MatchPair extends AppFrame {
     private GameInfo gameInfo;
 
     private Status gameStatus = Status.NOT_STARTED;
-    private String username, usernames, fontName;
+    private String username, usernames, fontName, topScores, recentScores;
     private int gameLevel = 1, gameScore, cnfIdx = 0, gameBtnFontSize;
 
     private final String TITLE_HEADING = "Controls";
     private final String GAME_SCORE_LOC = "./src/main/resources/scores";
     private final String GAME_CONFIGS_LOC = "./src/main/resources/game-configs";
+    private final String DEFAULT_SCORE_LOC = GAME_SCORE_LOC + "/default-score.config";
     private final int GAME_TIME_SEC = 80;
     private final int MAX_NAME = 12;
 
@@ -86,6 +84,9 @@ public class MatchPair extends AppFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new MatchPair().initComponents());
+        /*MatchPair mp = new MatchPair();
+        mp.username = "default";
+        mp.setScoreFile();*/
     }
 
     public MatchPair() {
@@ -98,9 +99,11 @@ public class MatchPair extends AppFrame {
     private void initComponents() {
         logger = MyLogger.createLogger(getClass());
         configs = new DefaultConfigs(logger, Utils.getConfigsAsArr(Configs.class));
-        loadConfigValues();
         gameInfos = new HashMap<>();
+        gameScores = new HashMap<>();
+        loadConfigValues();
         loadGameConfigs();
+        loadGameScores();
         logger.setSimpleClassName(true);
 
         super.setLogger(logger);
@@ -192,9 +195,9 @@ public class MatchPair extends AppFrame {
         parentContainer.add(topPanel, BorderLayout.NORTH);
         parentContainer.add(centerPanel, BorderLayout.CENTER);
 
-        String[] topScoreCols = new String[]{"Top Score", "User", "Date"};
-        String[] recentScoreCols = new String[]{"Recent Score", "User", "Date"};
-        String[] userCols = new String[]{"Users"};
+        String[] topScoreCols = new String[]{"Top Score", "Date"};
+        String[] recentScoreCols = new String[]{"Recent Score", "Date"};
+        String[] userCols = new String[]{"User", "Top Score"};
         DefaultTableModel topScoreModel = SwingUtils.getTableModel(topScoreCols);
         DefaultTableModel recentScoreModel = SwingUtils.getTableModel(recentScoreCols);
         DefaultTableModel userModel = SwingUtils.getTableModel(userCols);
@@ -222,7 +225,7 @@ public class MatchPair extends AppFrame {
         maximiseWin();
         enableControls();
         SwingUtils.getInFocus(btnStart);
-        disableGamePanel();
+        hideGamePanel();
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
     }
 
@@ -311,16 +314,45 @@ public class MatchPair extends AppFrame {
         setExtendedState(JFrame.MAXIMIZED_BOTH);
     }
 
-    private void loadGameConfigs() {
-        try {
-            Stream<Path> paths = Files.list(Utils.createPath(GAME_CONFIGS_LOC));
-            paths.forEach(p -> {
-                GameInfo gi = makeGameInfoObj(Utils.readPropertyFile(p.toAbsolutePath().toString(), logger));
-                gameInfos.put(gi.getGameLevel(), gi);
-            });
-        } catch (IOException e) {
-            logger.error("Unable to load game config from " + Utils.addBraces(GAME_CONFIGS_LOC));
+    private void loadGameScores() {
+        List<String> paths = Utils.listFiles(GAME_SCORE_LOC, logger);
+        paths.forEach(p -> {
+            Properties prop = Utils.readPropertyFile(p, logger);
+            String user = getUserFromFilename(p);
+            if (gameScores.containsKey(user)) {
+                logger.warn("Duplicate file found for user " + Utils.addBraces(user));
+            } else {
+                gameScores.put(user, getGameScores (prop, user));
+            }
+
+        });
+    }
+
+    private GameScores getGameScores(Properties prop, String user) {
+        List<GameScore> topScores = new ArrayList<>();
+        List<GameScore> recentScores = new ArrayList<>();
+
+
+
+        return new GameScores(user, topScores, recentScores);
+    }
+
+    private String getUserFromFilename(String path) {
+        if (path.contains(Constants.F_SLASH)) {
+            path = path.substring(path.lastIndexOf(Constants.F_SLASH));
+            if (path.contains(Constants.DASH)) {
+                path = path.substring(0, path.indexOf(Constants.DASH) - 1);
+            }
         }
+        return path;
+    }
+
+    private void loadGameConfigs() {
+        List<String> paths = Utils.listFiles(GAME_CONFIGS_LOC, logger);
+        paths.forEach(p -> {
+            GameInfo gi = makeGameInfoObj(Utils.readPropertyFile(p, logger));
+            gameInfos.put(gi.getGameLevel(), gi);
+        });
         logger.info("Game configs load as " + gameInfos);
     }
 
@@ -424,16 +456,15 @@ public class MatchPair extends AppFrame {
         setAppColors(fg, bg, hfg, hbg);
     }
 
-    private void enableGamePanel() {
+    private void showGamePanel() {
         changeGamePanel(true);
     }
 
     private void changeGamePanel(boolean status) {
         btnsPanel.setVisible(status);
-        //Arrays.stream(btnsPanel.getComponents()).forEach(c -> c.setEnabled(status));
     }
 
-    private void disableGamePanel() {
+    private void hideGamePanel() {
         changeGamePanel(false);
     }
 
@@ -450,7 +481,7 @@ public class MatchPair extends AppFrame {
         gameTime = GAME_TIME_SEC;
         gameStatus = Status.START;
         gameScore = 0;
-        enableGamePanel();
+        showGamePanel();
     }
 
     private void createButtons() {
@@ -495,7 +526,7 @@ public class MatchPair extends AppFrame {
     }
 
     public void stopGame() {
-        disableGamePanel();
+        hideGamePanel();
         enableControls();
     }
 
@@ -508,7 +539,11 @@ public class MatchPair extends AppFrame {
     }
 
     public boolean isGameRunning() {
-        return gameStatus == Status.START || isGamePaused();
+        return isGameStart() || isGamePaused();
+    }
+
+    public boolean isGameStart() {
+        return gameStatus == Status.START;
     }
 
     public boolean isGamePaused() {
@@ -536,13 +571,13 @@ public class MatchPair extends AppFrame {
             btnUser.setText(UIName.BTN_USER.name + SPACE + username);
             userPanel.remove(txtUser);
             userPanel.add(btnUser);
-            setScoreFiles();
+            setScoreFile();
         } else {
             getToolkit().beep();
             if (username.length() > MAX_NAME) {
                 txtUser.setText("max " + MAX_NAME + " char");
             } else {
-                txtUser.setText("FillName");
+                txtUser.setText("Fill Name");
             }
         }
     }
@@ -551,8 +586,14 @@ public class MatchPair extends AppFrame {
         return Utils.hasValue(username) && username.length() < MAX_NAME;
     }
 
-    private void setScoreFiles() {
-
+    private String setScoreFile() {
+        List<String> paths = Utils.listFiles(GAME_SCORE_LOC, logger);
+        List<String> mappedPaths = paths.stream().filter(username::startsWith)
+                .collect(Collectors.toList());
+        if (mappedPaths.size() == 1) {
+            return mappedPaths.get(0);
+        }
+        return DEFAULT_SCORE_LOC;
     }
 
     private void startGame() {
@@ -561,8 +602,14 @@ public class MatchPair extends AppFrame {
     }
 
     private void pauseGame() {
-        startNewGame();
-        disableControls();
+        gameStatus = gameStatus == Status.PAUSED ? Status.START : Status.PAUSED;
+        if (isGamePaused()) {
+            btnPause.setText("Resume");
+            hideGamePanel();
+        } else {
+            btnPause.setText(UIName.BTN_PAUSE.name);
+            showGamePanel();
+        }
     }
 
     /**
