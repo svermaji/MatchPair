@@ -5,31 +5,33 @@ import com.sv.core.Utils;
 import com.sv.core.config.DefaultConfigs;
 import com.sv.core.logger.MyLogger;
 import com.sv.matchpair.task.AppFontChangerTask;
+import com.sv.matchpair.task.GameTimerTask;
 import com.sv.swingui.KeyActionDetails;
 import com.sv.swingui.SwingUtils;
 import com.sv.swingui.component.*;
 import com.sv.swingui.component.table.AppTable;
 
 import javax.swing.*;
-import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.LineBorder;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.List;
 import java.util.Timer;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static com.sv.core.Constants.SEC_1;
+import static com.sv.core.Constants.SPACE;
 import static com.sv.matchpair.AppConstants.GAME_CHARS;
+import static com.sv.matchpair.AppConstants.PAIRS_COUNT;
+import static com.sv.matchpair.AppUtils.lastButton;
 import static com.sv.swingui.UIConstants.*;
 
 /**
@@ -44,7 +46,7 @@ public class MatchPair extends AppFrame {
      * e.g. if enum is Xyz then when storing getXyz will be called
      */
     public enum Configs {
-        AppFontSize, GameBtnFontSize, CNFIdx, Username
+        AppFontSize, GameBtnFontSize, CNFIdx, Username, Usernames
     }
 
     public enum Status {
@@ -59,21 +61,28 @@ public class MatchPair extends AppFrame {
     private JMenuBar menuBar;
     private AppMenu menu;
     private AppButton btnStart, btnUser, btnPause, btnExit;
-    private AppLabel lblTime, lblScore;
+    private AppTextField txtUser;
+    private AppLabel lblTime, lblScore, lblLevel;
     private AppTable tblTopScore, tblRecentScore, tblUsers;
-    private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel;
+    private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel, userPanel;
     private List<Timer> timers = new ArrayList<>();
     private Timer timerScore = null;
     private ColorsNFonts[] appColors = SwingUtils.getFilteredCnF(false);
+    private JComponent[] componentsToColor;
+    private GameInfo gameInfo;
 
     private Status gameStatus = Status.NOT_STARTED;
-    private String username, fontName;
-    private int gameLevel = 1, cnfIdx = 0, gameBtnFontSize;
+    private String username, usernames, fontName;
+    private int gameLevel = 1, gameScore, cnfIdx = 0, gameBtnFontSize;
 
-    private JComponent[] componentsToColor;
     private final String TITLE_HEADING = "Controls";
+    private final String GAME_SCORE_LOC = "./src/main/resources/scores";
     private final String GAME_CONFIGS_LOC = "./src/main/resources/game-configs";
     private final int GAME_TIME_SEC = 80;
+    private final int MAX_NAME = 12;
+
+    public static int gamePairMatched = 0;
+    public static int gameTime = 0;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new MatchPair().initComponents());
@@ -113,35 +122,55 @@ public class MatchPair extends AppFrame {
         parentContainer.setLayout(new BorderLayout());
 
         topPanel = new AppPanel(new BorderLayout());
-        AppToolBar tbControls = new AppToolBar();
         titledBorder = SwingUtils.createTitledBorder(TITLE_HEADING, fg);
         topPanel.setBorder(titledBorder);
         UIName uin = UIName.BTN_USER;
         btnUser = new AppButton(uin.name + Constants.SPACE + username, uin.mnemonic, uin.tip);
-        btnUser.addActionListener(e -> startGame());
+        btnUser.addActionListener(e -> changeUsername());
+        uin = UIName.LBL_USER;
+        txtUser = new AppTextField(uin.name, 10);
+        txtUser.setToolTipText(uin.tip);
+        txtUser.addKeyListener(new KeyAdapter() {
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    saveUsername();
+                }
+            }
+        });
+        txtUser.setVisible(false);
+        uin = UIName.BTN_LEVEL;
+        lblLevel = new AppLabel(uin.name, uin.mnemonic, uin.tip);
+        updateLevel();
         uin = UIName.BTN_START;
         btnStart = new AppButton(uin.name, uin.mnemonic, uin.tip);
         btnStart.addActionListener(e -> startGame());
         uin = UIName.BTN_PAUSE;
         btnPause = new AppButton(uin.name, uin.mnemonic, uin.tip);
-        btnPause.addActionListener(e -> startGame());
+        btnPause.addActionListener(e -> pauseGame());
         uin = UIName.LBL_TIME;
         lblTime = new AppLabel(uin.name, uin.mnemonic, uin.tip);
-        lblTime.setHorizontalAlignment(SwingConstants.CENTER);
-        btnPause.addActionListener(e -> startGame());
         uin = UIName.LBL_SCORE;
         lblScore = new AppLabel(uin.name, uin.mnemonic, uin.tip);
-        lblScore.setHorizontalAlignment(SwingConstants.CENTER);
-        btnPause.addActionListener(e -> startGame());
+        updateScore();
         uin = UIName.MENU;
         menu = new AppMenu(uin.name, uin.mnemonic, uin.tip);
         menu.add(SwingUtils.getColorsMenu(true, true,
                 true, true, false, this, logger));
         menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
 
-        tbControls.add(btnUser);
+        AppLabel[] lbls = {lblLevel, lblTime, lblScore};
+        Arrays.stream(lbls).forEach(l -> l.setHorizontalAlignment(SwingConstants.CENTER));
+
+        userPanel = new AppPanel();
+        userPanel.setLayout(new GridLayout(1, 1));
+        userPanel.add(btnUser);
+        AppToolBar tbControls = new AppToolBar();
+        tbControls.add(userPanel);
         tbControls.add(btnStart);
         tbControls.add(btnPause);
+        tbControls.add(lblLevel);
         tbControls.add(lblTime);
         tbControls.add(lblScore);
         menuBar = new JMenuBar();
@@ -182,7 +211,7 @@ public class MatchPair extends AppFrame {
         tblPanel.setBorder(EMPTY_BORDER);
         centerPanel.add(tblPanel, BorderLayout.WEST);
 
-        componentsToColor = new JComponent[]{btnUser, btnStart, btnPause, lblTime, lblScore,
+        componentsToColor = new JComponent[]{btnUser, txtUser, btnStart, btnPause, lblLevel, lblTime, lblScore,
                 menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
                 tblUsers.getTableHeader()
         };
@@ -190,10 +219,91 @@ public class MatchPair extends AppFrame {
         setControlsToEnable();
         addBindings();
 
-        maximiseWin ();
+        maximiseWin();
         enableControls();
         SwingUtils.getInFocus(btnStart);
+        disableGamePanel();
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
+    }
+
+    public List<GameButton> prepareGameButtons(GameInfo gi) {
+        Integer[] seq = AppUtils.getRandomGameSeq(gi);
+        int total = gi.getRows() * gi.getCols();
+
+        List<GameButton> list = new ArrayList<>(total);
+        List<Character> chList = new ArrayList<>(total);
+        int elem = total - PAIRS_COUNT;
+        Random rand = new Random();
+        while (chList.size() < elem) {
+            Character ch = AppConstants.GAME_CHARS[rand.nextInt(GAME_CHARS.length)];
+            if (!chList.contains(ch)) {
+                chList.add(ch);
+            }
+        }
+        int x = 0;
+        for (int i = 0; i < PAIRS_COUNT; i++) {
+            chList.add(x, chList.get(x));
+            int seqE = seq[i];
+            x += seqE;
+        }
+        AtomicInteger k = new AtomicInteger();
+        AtomicInteger t = new AtomicInteger();
+        // first 3 element in sequence must be > 2
+        Arrays.stream(seq).forEach(i -> {
+            for (int j = 0; j < i; j++) {
+                list.add(new GameButton(chList.get(t.getAndIncrement()) + Constants.EMPTY,
+                        gi.getColors()[k.intValue()], this));
+            }
+            k.getAndIncrement();
+        });
+
+        return list;
+    }
+
+    public void checkGameButton(GameButton gb) {
+        if (lastButton != null && !lastButton.isClicked()) {
+            lastButton = null;
+            gb = null;
+        }
+        if (lastButton != null && lastButton.isClicked() && gb.isClicked()
+                && lastButton.getText().equals(gb.getText())) {
+            gb.setVisible(false);
+            lastButton.setVisible(false);
+            lastButton = null;
+            gb = null;
+            gamePairMatched++;
+            gameScore += gameInfo.getMatchScore();
+            updateScore();
+            if (gamePairMatched == PAIRS_COUNT) {
+                gameLevel++;
+                updateLevel();
+                gamePairMatched = 0;
+                createButtons();
+            }
+        } else {
+            if (lastButton != null && lastButton.isClicked() && gb.isClicked()
+                    && !(lastButton.getText().equals(gb.getText()))) {
+                lastButton = null;
+                gb = null;
+                gamePairMatched = 0;
+                gameLevelFailed();
+            }
+        }
+        if (lastButton == null && gb != null) {
+            lastButton = gb;
+        }
+    }
+
+    private void updateLevel() {
+        lblLevel.setText(UIName.BTN_LEVEL.name + SPACE + gameLevel);
+    }
+
+    private void updateScore() {
+        lblScore.setText(UIName.LBL_SCORE.name + SPACE + gameScore);
+    }
+
+    private void gameLevelFailed() {
+        createButtons();
     }
 
     private void maximiseWin() {
@@ -245,11 +355,12 @@ public class MatchPair extends AppFrame {
         cnfIdx = configs.getIntConfig(Configs.CNFIdx.name());
         appFontSize = configs.getIntConfig(Configs.AppFontSize.name());
         username = configs.getConfig(Configs.Username.name());
-//        gameBtnFontSize = configs.getIntConfig(Configs.GameBtnFontSize.name());
-        gameBtnFontSize = 40;
+        usernames = configs.getConfig(Configs.Usernames.name());
+        gameBtnFontSize = configs.getIntConfig(Configs.GameBtnFontSize.name());
         logger.info("All configs: cnfIdx [" + cnfIdx +
                 "], appFontSize [" + appFontSize +
                 "], gameBtnFontSize [" + gameBtnFontSize +
+                "], Usernames [" + usernames +
                 "], username " + Utils.addBraces(username));
     }
 
@@ -267,6 +378,7 @@ public class MatchPair extends AppFrame {
     public void changeAppFont() {
         SwingUtils.applyAppFont(this, appFontSize, this, logger);
         changeGameBtnFont();
+        SwingUtils.applyAppFont(txtUser, appFontSize, this, logger);
     }
 
     // This will be called by reflection from SwingUI jar
@@ -312,10 +424,39 @@ public class MatchPair extends AppFrame {
         setAppColors(fg, bg, hfg, hbg);
     }
 
+    private void enableGamePanel() {
+        changeGamePanel(true);
+    }
+
+    private void changeGamePanel(boolean status) {
+        btnsPanel.setVisible(status);
+        //Arrays.stream(btnsPanel.getComponents()).forEach(c -> c.setEnabled(status));
+    }
+
+    private void disableGamePanel() {
+        changeGamePanel(false);
+    }
+
+    private void startNewGame() {
+        resetGame();
+        Timer t = new Timer();
+        t.schedule(new GameTimerTask(this), 0);
+        timers.add(t);
+        createButtons();
+    }
+
+    private void resetGame() {
+        gameLevel = 1;
+        gameTime = GAME_TIME_SEC;
+        gameStatus = Status.START;
+        gameScore = 0;
+        enableGamePanel();
+    }
+
     private void createButtons() {
-        GameInfo gi = getGameInfoFor(gameLevel);
-        int rows = gi.getRows();
-        int cols = gi.getCols();
+        gameInfo = getGameInfoFor(gameLevel);
+        int rows = gameInfo.getRows();
+        int cols = gameInfo.getCols();
         BoxLayout boxlayout = new BoxLayout(buttonsPanel, BoxLayout.Y_AXIS);
         buttonsPanel.setLayout(boxlayout);
         if (btnsPanel != null) {
@@ -328,7 +469,7 @@ public class MatchPair extends AppFrame {
         int gap = 50;
         btnsPanel.setBorder(new EmptyBorder(new Insets(gap, gap, gap, gap)));
         // randomize buttons
-        List<GameButton> gameBtns = AppUtils.prepareGameButtons(gi);
+        List<GameButton> gameBtns = prepareGameButtons(gameInfo);
         List<GameButton> gameBtnsRandomize = new ArrayList<>();
         long time = Utils.getNowMillis();
         Random rand = new Random();
@@ -353,12 +494,75 @@ public class MatchPair extends AppFrame {
         return gi;
     }
 
+    public void stopGame() {
+        disableGamePanel();
+        enableControls();
+    }
+
+    public void updateGameTime() {
+        if (gameTime == 0) {
+            gameStatus = Status.STOP;
+            stopGame();
+        }
+        lblTime.setText(UIName.LBL_TIME.name + SPACE + Utils.formatTime(gameTime--));
+    }
+
+    public boolean isGameRunning() {
+        return gameStatus == Status.START || isGamePaused();
+    }
+
+    public boolean isGamePaused() {
+        return gameStatus == Status.PAUSED;
+    }
+
     private void createBorders() {
         Arrays.stream(componentsToColor).forEach(c -> c.setBorder(SwingUtils.createLineBorder(bg)));
     }
 
+    private void changeUsername() {
+        btnUser.setVisible(false);
+        txtUser.setVisible(true);
+        userPanel.remove(btnUser);
+        userPanel.add(txtUser);
+        SwingUtils.getInFocus(txtUser);
+        txtUser.selectAll();
+    }
+
+    private void saveUsername() {
+        username = txtUser.getText().trim();
+        if (isValidName(username)) {
+            btnUser.setVisible(true);
+            txtUser.setVisible(false);
+            btnUser.setText(UIName.BTN_USER.name + SPACE + username);
+            userPanel.remove(txtUser);
+            userPanel.add(btnUser);
+            setScoreFiles();
+        } else {
+            getToolkit().beep();
+            if (username.length() > MAX_NAME) {
+                txtUser.setText("max " + MAX_NAME + " char");
+            } else {
+                txtUser.setText("FillName");
+            }
+        }
+    }
+
+    private boolean isValidName(String username) {
+        return Utils.hasValue(username) && username.length() < MAX_NAME;
+    }
+
+    private void setScoreFiles() {
+
+    }
+
     private void startGame() {
-        createButtons();
+        startNewGame();
+        disableControls();
+    }
+
+    private void pauseGame() {
+        startNewGame();
+        disableControls();
     }
 
     /**
@@ -378,10 +582,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void setControlsToEnable() {
-        Component[] components = {
-                btnUser, btnStart, lblTime, lblScore,
-                menuBar, menu
-        };
+        Component[] components = {btnStart, menuBar, menu};
         setComponentToEnable(components);
         setComponentContrastToEnable(new Component[]{btnPause});
         enableControls();
@@ -395,7 +596,6 @@ public class MatchPair extends AppFrame {
     private void addKeyBindings(JComponent[] addBindingsTo) {
         Action actionTxtSearch = new AbstractAction() {
             public void actionPerformed(ActionEvent e) {
-                //SwingUtils.getInFocus(txtSearch);
             }
         };
 
@@ -419,5 +619,9 @@ public class MatchPair extends AppFrame {
 
     public String getUsername() {
         return username;
+    }
+
+    public String getUsernames() {
+        return usernames;
     }
 }
