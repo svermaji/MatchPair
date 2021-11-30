@@ -10,6 +10,7 @@ import com.sv.swingui.KeyActionDetails;
 import com.sv.swingui.SwingUtils;
 import com.sv.swingui.component.*;
 import com.sv.swingui.component.table.AppTable;
+import com.sv.swingui.component.table.CellRendererCenterAlign;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -17,16 +18,16 @@ import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.FileOutputStream;
 import java.util.*;
 import java.util.List;
 import java.util.Timer;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import static com.sv.core.Constants.SEC_1;
-import static com.sv.core.Constants.SPACE;
-import static com.sv.matchpair.AppConstants.GAME_CHARS;
-import static com.sv.matchpair.AppConstants.PAIRS_COUNT;
+import static com.sv.core.Constants.*;
+import static com.sv.matchpair.AppConstants.*;
 import static com.sv.matchpair.AppUtils.lastButton;
 import static com.sv.swingui.UIConstants.*;
 
@@ -61,21 +62,22 @@ public class MatchPair extends AppFrame {
     private AppTextField txtUser;
     private AppLabel lblTime, lblScore, lblLevel;
     private AppTable tblTopScore, tblRecentScore, tblUsers;
+    private DefaultTableModel topScoreModel, recentScoreModel, userModel;
     private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel, userPanel;
     private List<Timer> timers = new ArrayList<>();
     private Timer timerScore = null;
     private ColorsNFonts[] appColors = SwingUtils.getFilteredCnF(false);
     private JComponent[] componentsToColor;
     private GameInfo gameInfo;
+    private final CellRendererCenterAlign CENTER_RENDERER = new CellRendererCenterAlign();
 
     private Status gameStatus = Status.NOT_STARTED;
     private String username, usernames, fontName, topScores, recentScores;
     private int gameLevel = 1, gameScore, cnfIdx = 0, gameBtnFontSize;
 
     private final String TITLE_HEADING = "Controls";
-    private final String GAME_SCORE_LOC = "./src/main/resources/scores";
+    private final String GAME_SCORE_LOC = "./src/main/resources/scores.config";
     private final String GAME_CONFIGS_LOC = "./src/main/resources/game-configs";
-    private final String DEFAULT_SCORE_LOC = GAME_SCORE_LOC + "/default-score.config";
     private final int GAME_TIME_SEC = 80;
     private final int MAX_NAME = 12;
 
@@ -99,8 +101,8 @@ public class MatchPair extends AppFrame {
     private void initComponents() {
         logger = MyLogger.createLogger(getClass());
         configs = new DefaultConfigs(logger, Utils.getConfigsAsArr(Configs.class));
-        gameInfos = new HashMap<>();
-        gameScores = new HashMap<>();
+        gameInfos = new ConcurrentHashMap<>();
+        gameScores = new ConcurrentHashMap<>();
         loadConfigValues();
         loadGameConfigs();
         loadGameScores();
@@ -195,24 +197,7 @@ public class MatchPair extends AppFrame {
         parentContainer.add(topPanel, BorderLayout.NORTH);
         parentContainer.add(centerPanel, BorderLayout.CENTER);
 
-        String[] topScoreCols = new String[]{"Top Score", "Date"};
-        String[] recentScoreCols = new String[]{"Recent Score", "Date"};
-        String[] userCols = new String[]{"User", "Top Score"};
-        DefaultTableModel topScoreModel = SwingUtils.getTableModel(topScoreCols);
-        DefaultTableModel recentScoreModel = SwingUtils.getTableModel(recentScoreCols);
-        DefaultTableModel userModel = SwingUtils.getTableModel(userCols);
-        tblTopScore = new AppTable(topScoreModel);
-        tblRecentScore = new AppTable(recentScoreModel);
-        tblUsers = new AppTable(userModel);
-        setTable(tblTopScore, topScoreModel);
-        setTable(tblRecentScore, recentScoreModel);
-        setTable(tblUsers, userModel);
-        AppPanel tblPanel = new AppPanel(new GridLayout(3, 1));
-        tblPanel.add(new JScrollPane(tblUsers));
-        tblPanel.add(new JScrollPane(tblTopScore));
-        tblPanel.add(new JScrollPane(tblRecentScore));
-        tblPanel.setBorder(EMPTY_BORDER);
-        centerPanel.add(tblPanel, BorderLayout.WEST);
+        setAllTables();
 
         componentsToColor = new JComponent[]{btnUser, txtUser, btnStart, btnPause, lblLevel, lblTime, lblScore,
                 menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
@@ -227,6 +212,76 @@ public class MatchPair extends AppFrame {
         SwingUtils.getInFocus(btnStart);
         hideGamePanel();
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
+    }
+
+    private void setAllTables() {
+        String[] topScoreCols = new String[]{"Top Score", "Date"};
+        String[] recentScoreCols = new String[]{"Recent Score", "Date"};
+        String[] userCols = new String[]{"User", "Top Score"};
+
+        topScoreModel = SwingUtils.getTableModel(topScoreCols);
+        recentScoreModel = SwingUtils.getTableModel(recentScoreCols);
+        userModel = SwingUtils.getTableModel(userCols);
+
+        tblTopScore = new AppTable(topScoreModel);
+        tblRecentScore = new AppTable(recentScoreModel);
+        tblUsers = new AppTable(userModel);
+
+        setTable(tblTopScore, topScoreModel);
+        setTable(tblRecentScore, recentScoreModel);
+        setTable(tblUsers, userModel);
+        loadTableData();
+
+        AppPanel tblPanel = new AppPanel(new GridLayout(3, 1));
+        tblPanel.add(new JScrollPane(tblTopScore));
+        tblPanel.add(new JScrollPane(tblRecentScore));
+        tblPanel.add(new JScrollPane(tblUsers));
+        tblPanel.setBorder(EMPTY_BORDER);
+
+        centerPanel.add(tblPanel, BorderLayout.WEST);
+    }
+
+    private void loadTableData() {
+        GameScores gs = gameScores.get(username);
+        if (gs != null) {
+            populateScoreTbl(gs.getTopScore(), topScoreModel);
+            populateScoreTbl(gs.getRecentScore(), recentScoreModel);
+        }
+        populateUsersTopScore(userModel);
+    }
+
+    private void populateScoreTbl(List<GameScore> list, DefaultTableModel model) {
+        // empty
+        model.setRowCount(0);
+        int sz = list.size();
+        for (int i = 0; i < sz; i++) {
+            if (i < DEFAULT_TABLE_ROWS - 1) {
+                GameScore gs = list.get(i);
+                model.addRow(new String[]{gs.getScore(), gs.getDate()});
+            }
+        }
+        if (DEFAULT_TABLE_ROWS > sz) {
+            int n = DEFAULT_TABLE_ROWS - sz;
+            SwingUtils.createEmptyRows(model.getColumnCount(), n, model);
+        }
+    }
+
+    private void populateUsersTopScore(DefaultTableModel model) {
+        // empty
+        model.setRowCount(0);
+        int sz = gameScores.size();
+        int a = 0;
+        for (GameScores v : gameScores.values()) {
+            if (a++ > DEFAULT_TABLE_ROWS) {
+                break;
+            }
+            String ts = v.getTopScore().size() > 0 ? v.getTopScore().get(0).getScore() : "0";
+            model.addRow(new String[]{v.getUsername(), ts});
+        }
+        if (DEFAULT_TABLE_ROWS > sz) {
+            int n = DEFAULT_TABLE_ROWS - sz;
+            SwingUtils.createEmptyRows(model.getColumnCount(), n, model);
+        }
     }
 
     public List<GameButton> prepareGameButtons(GameInfo gi) {
@@ -315,36 +370,42 @@ public class MatchPair extends AppFrame {
     }
 
     private void loadGameScores() {
-        List<String> paths = Utils.listFiles(GAME_SCORE_LOC, logger);
-        paths.forEach(p -> {
-            Properties prop = Utils.readPropertyFile(p, logger);
-            String user = getUserFromFilename(p);
-            if (gameScores.containsKey(user)) {
-                logger.warn("Duplicate file found for user " + Utils.addBraces(user));
-            } else {
-                gameScores.put(user, getGameScores (prop, user));
+        Properties props = Utils.readPropertyFile(GAME_SCORE_LOC, logger);
+        props.stringPropertyNames().forEach(k -> {
+            if (k.endsWith(PROP_SCORES_SUFFIX)) {
+                String v = props.getProperty(k);
+                String user = getUserFromProp(k);
+                if (gameScores.containsKey(user)) {
+                    logger.warn("Duplicate file found for user " + Utils.addBraces(user));
+                } else {
+                    gameScores.put(user, getGameScores(user, v));
+                }
             }
-
         });
+        logger.info("All gameScores = " + gameScores);
     }
 
-    private GameScores getGameScores(Properties prop, String user) {
-        List<GameScore> topScores = new ArrayList<>();
-        List<GameScore> recentScores = new ArrayList<>();
-
-
-
-        return new GameScores(user, topScores, recentScores);
+    private GameScores getGameScores(String user, String gameScoreCsv) {
+        return new GameScores(user, processScores(gameScoreCsv));
     }
 
-    private String getUserFromFilename(String path) {
-        if (path.contains(Constants.F_SLASH)) {
-            path = path.substring(path.lastIndexOf(Constants.F_SLASH));
-            if (path.contains(Constants.DASH)) {
-                path = path.substring(0, path.indexOf(Constants.DASH) - 1);
+    private List<GameScore> processScores(String scoreStr) {
+        List<GameScore> list = new ArrayList<>();
+        String[] scoreDate = scoreStr.split(AppConstants.SCORE_SEP);
+        Arrays.stream(scoreDate).forEach(sd -> {
+            if (Utils.hasValue(sd)) {
+                String[] arr = sd.split(AppConstants.SCORE_DATA_SEP);
+                list.add(new GameScore(arr[0], arr[1]));
             }
+        });
+        return list;
+    }
+
+    private String getUserFromProp(String k) {
+        if (k.contains(Constants.DASH)) {
+            k = k.substring(0, k.indexOf(Constants.DASH));
         }
-        return path;
+        return k;
     }
 
     private void loadGameConfigs() {
@@ -387,6 +448,9 @@ public class MatchPair extends AppFrame {
         cnfIdx = configs.getIntConfig(Configs.CNFIdx.name());
         appFontSize = configs.getIntConfig(Configs.AppFontSize.name());
         username = configs.getConfig(Configs.Username.name());
+        if (!Utils.hasValue(username)) {
+            username = "default";
+        }
         usernames = configs.getConfig(Configs.Usernames.name());
         gameBtnFontSize = configs.getIntConfig(Configs.GameBtnFontSize.name());
         logger.info("All configs: cnfIdx [" + cnfIdx +
@@ -400,7 +464,9 @@ public class MatchPair extends AppFrame {
         tbl.setScrollProps();
         tbl.setRowHeight(appFontSize + 4);
         tbl.setBorder(EMPTY_BORDER);
-        SwingUtils.removeAndCreateEmptyRows(model.getColumnCount(), 5, model);
+        for (int i = 0; i < model.getColumnCount(); i++) {
+            tbl.getColumnModel().getColumn(i).setCellRenderer(CENTER_RENDERER);
+        }
     }
 
     public void changeGameBtnFont() {
@@ -528,6 +594,8 @@ public class MatchPair extends AppFrame {
     public void stopGame() {
         hideGamePanel();
         enableControls();
+        gameScores.get(username).addScore(new GameScore(gameScore+"", Utils.getDateDDMMYYYY()));
+        loadGameScores();
     }
 
     public void updateGameTime() {
@@ -571,7 +639,10 @@ public class MatchPair extends AppFrame {
             btnUser.setText(UIName.BTN_USER.name + SPACE + username);
             userPanel.remove(txtUser);
             userPanel.add(btnUser);
-            setScoreFile();
+            if (!gameScores.containsKey(username)) {
+                gameScores.put(username, new GameScores(username, null));
+            }
+            loadTableData();
         } else {
             getToolkit().beep();
             if (username.length() > MAX_NAME) {
@@ -584,16 +655,6 @@ public class MatchPair extends AppFrame {
 
     private boolean isValidName(String username) {
         return Utils.hasValue(username) && username.length() < MAX_NAME;
-    }
-
-    private String setScoreFile() {
-        List<String> paths = Utils.listFiles(GAME_SCORE_LOC, logger);
-        List<String> mappedPaths = paths.stream().filter(username::startsWith)
-                .collect(Collectors.toList());
-        if (mappedPaths.size() == 1) {
-            return mappedPaths.get(0);
-        }
-        return DEFAULT_SCORE_LOC;
     }
 
     private void startGame() {

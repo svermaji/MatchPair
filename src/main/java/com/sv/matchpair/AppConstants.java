@@ -9,11 +9,11 @@ public final class AppConstants {
     private AppConstants() {
     }
 
+    public static final int DEFAULT_TABLE_ROWS = 8;
     public static final int PAIRS_COUNT = 3;
-    public static final String SCORE_DATA_SEP = Constants.SEMI_COLON;
+    public static final String SCORE_DATA_SEP = Constants.SLASH + Constants.PIPE;
     public static final String SCORE_SEP = Constants.SEMI_COLON;
-    public static final String PROP_TOP_SCORE = "top-score";
-    public static final String PROP_RECENT_SCORE = "recent-score";
+    public static final String PROP_SCORES_SUFFIX = "-scores";
     public static final Character[] GAME_CHARS = {
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
             'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',

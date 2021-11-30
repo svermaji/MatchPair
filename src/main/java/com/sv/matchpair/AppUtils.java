@@ -48,6 +48,8 @@ public final class AppUtils {
                 return Color.blue;
             case "purple":
                 return new Color(102, 0, 153);
+            case "magenta":
+                return Color.magenta;
             case "orange":
                 return Color.orange;
         }
