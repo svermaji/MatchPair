@@ -284,7 +284,7 @@ public class MatchPair extends AppFrame {
                 .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2, LinkedHashMap::new));
 
-        sorted.forEach((k, v) -> model.addRow(new String[]{k, v+""}));
+        sorted.forEach((k, v) -> model.addRow(new String[]{k, v + ""}));
     }
 
     public List<GameButton> prepareGameButtons(GameInfo gi) {
@@ -614,7 +614,7 @@ public class MatchPair extends AppFrame {
         return gi;
     }
 
-    public void stopGame() {
+    private void endGame() {
         hideGamePanel();
         enableControls();
         gameScores.get(username).addScore(new GameScore(gameScore + "", Utils.getDateDDMMYYYY()));
@@ -622,10 +622,23 @@ public class MatchPair extends AppFrame {
         cancelTimers();
     }
 
+    private void stopGame() {
+        gameStatus = Status.STOP;
+        hideGamePanel();
+        enableControls();
+        cancelTimers();
+        gameLevel = 1;
+        gameTime = GAME_TIME_SEC;
+        gameScore = 0;
+        updateScore();
+        updateLevel();
+        updateGameTime();
+    }
+
     public void updateGameTime() {
         if (gameTime == 0) {
             gameStatus = Status.STOP;
-            stopGame();
+            endGame();
             lblTime.setForeground(fg);
         }
         if (gameTime <= ALARM_TIME_SEC && gameTime > 0) {
@@ -698,8 +711,15 @@ public class MatchPair extends AppFrame {
     }
 
     private void startGame() {
-        startNewGame();
-        disableControls();
+        if (isGameStart()) {
+            btnStart.setText(UIName.BTN_START.name);
+            stopGame();
+            enableControls();
+        } else {
+            btnStart.setText("Stop");
+            startNewGame();
+            disableControls();
+        }
     }
 
     private void pauseGame() {
@@ -718,6 +738,7 @@ public class MatchPair extends AppFrame {
      * Exit the Application
      */
     private void exitForm() {
+        stopGame();
         saveScores();
         cancelTimers();
         configs.saveConfig(this);
@@ -750,7 +771,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void setControlsToEnable() {
-        Component[] components = {btnStart, menuBar, menu};
+        Component[] components = {menuBar, menu};
         setComponentToEnable(components);
         setComponentContrastToEnable(new Component[]{btnPause});
         enableControls();
