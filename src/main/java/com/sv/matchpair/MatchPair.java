@@ -63,7 +63,8 @@ public class MatchPair extends AppFrame {
     private AppLabel lblTime, lblScore, lblLevel;
     private AppTable tblTopScore, tblRecentScore, tblUsers;
     private DefaultTableModel topScoreModel, recentScoreModel, userModel;
-    private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel, userPanel;
+    private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel, userPanel, tblPanel;
+    private JSplitPane splitPane;
     private List<Timer> timers = new ArrayList<>();
     private Timer timerScore = null;
     private ColorsNFonts[] appColors = SwingUtils.getFilteredCnF(false);
@@ -78,10 +79,13 @@ public class MatchPair extends AppFrame {
     private final String TITLE_HEADING = "Controls";
     private final String GAME_SCORE_LOC = "./src/main/resources/scores.config";
     private final String GAME_CONFIGS_LOC = "./src/main/resources/game-configs";
+    private final String GAME_SEQ_LOC = "./src/main/resources/game-sequences.config";
     private final int MAX_NAME = 12;
 
-    public static int gamePairMatched = 0;
-    public static int gameTime = 0;
+    private static int gamePairMatched = 0;
+    private static int gameTime = 0;
+
+    private int[][] gameSequences;
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new MatchPair().initComponents());
@@ -102,6 +106,7 @@ public class MatchPair extends AppFrame {
         configs = new DefaultConfigs(logger, Utils.getConfigsAsArr(Configs.class));
         gameInfos = new ConcurrentHashMap<>();
         gameScores = new ConcurrentHashMap<>();
+        loadGameSequences();
         loadConfigValues();
         loadGameConfigs();
         loadGameScores();
@@ -132,7 +137,7 @@ public class MatchPair extends AppFrame {
         btnUser = new AppButton(uin.name + Constants.SPACE + username, uin.mnemonic, uin.tip);
         btnUser.addActionListener(e -> changeUsername());
         uin = UIName.LBL_USER;
-        txtUser = new AppTextField(uin.name, 10);
+        txtUser = new AppTextField(username, 10);
         txtUser.setToolTipText(uin.tip);
         txtUser.addKeyListener(new KeyAdapter() {
 
@@ -140,6 +145,8 @@ public class MatchPair extends AppFrame {
             public void keyReleased(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     saveUsername();
+                } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    doNotSaveUsername();
                 }
             }
         });
@@ -191,12 +198,15 @@ public class MatchPair extends AppFrame {
 
         centerPanel = new AppPanel(new BorderLayout());
         buttonsPanel = new AppPanel();
+        setAllTables();
         createButtons();
-        centerPanel.add(buttonsPanel);
+        splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tblPanel, buttonsPanel);
+        splitPane.setOneTouchExpandable(true);
+        splitPane.setResizeWeight(0.1);
+        centerPanel.add(splitPane, BorderLayout.CENTER);
         parentContainer.add(topPanel, BorderLayout.NORTH);
         parentContainer.add(centerPanel, BorderLayout.CENTER);
 
-        setAllTables();
 
         componentsToColor = new JComponent[]{btnUser, txtUser, btnStart, btnPause, lblLevel, lblTime, lblScore,
                 menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
@@ -231,13 +241,11 @@ public class MatchPair extends AppFrame {
         setTable(tblUsers, userModel);
         loadTableData();
 
-        AppPanel tblPanel = new AppPanel(new GridLayout(3, 1));
+        tblPanel = new AppPanel(new GridLayout(3, 1));
         tblPanel.add(new JScrollPane(tblTopScore));
         tblPanel.add(new JScrollPane(tblRecentScore));
         tblPanel.add(new JScrollPane(tblUsers));
         tblPanel.setBorder(EMPTY_BORDER);
-
-        centerPanel.add(tblPanel, BorderLayout.WEST);
     }
 
     private void loadTableData() {
@@ -268,21 +276,20 @@ public class MatchPair extends AppFrame {
     private void populateUsersTopScore(DefaultTableModel model) {
         // empty
         model.setRowCount(0);
-        int sz = gameScores.size();
-        int a = 0;
-        Map<String, String> topScores = new ConcurrentHashMap<>();
+        Map<String, Integer> topScores = new ConcurrentHashMap<>();
         for (GameScores v : gameScores.values()) {
             topScores.put(v.getUsername(), v.getTopScore());
         }
-        Map<String, String> sorted = topScores.entrySet().stream()
+        Map<String, Integer> sorted = topScores.entrySet().stream()
                 .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2, LinkedHashMap::new));
 
-        sorted.forEach((k, v) -> model.addRow(new String[]{k, v}));
+        sorted.forEach((k, v) -> model.addRow(new String[]{k, v+""}));
     }
 
     public List<GameButton> prepareGameButtons(GameInfo gi) {
-        Integer[] seq = AppUtils.getRandomGameSeq(gi);
+        Integer[] seq = AppUtils.getRandomGameSeq(gi, gameSequences);
+        logger.info("Sequence selected as " + Arrays.toString(seq));
         int total = gi.getRows() * gi.getCols();
 
         List<GameButton> list = new ArrayList<>(total);
@@ -296,10 +303,19 @@ public class MatchPair extends AppFrame {
             }
         }
         int x = 0;
+        // if sequence is GAME_SEQ_LIMIT_MAX then make two colors in same
         for (int i = 0; i < PAIRS_COUNT; i++) {
-            chList.add(x, chList.get(x));
             int seqE = seq[i];
-            x += seqE;
+            if (seqE < GAME_SEQ_LIMIT_MIN) {
+                i--;
+            } else {
+                chList.add(x, chList.get(x));
+                if (seqE > GAME_SEQ_LIMIT_MAX && i < PAIRS_COUNT - 1) {
+                    chList.add(x + 2, chList.get(x + 2));
+                    i++;
+                }
+                x += seqE;
+            }
         }
         AtomicInteger k = new AtomicInteger();
         AtomicInteger t = new AtomicInteger();
@@ -405,6 +421,15 @@ public class MatchPair extends AppFrame {
         return k;
     }
 
+    private void loadGameSequences() {
+        List<String> lines = Utils.readFile(GAME_SEQ_LOC, logger);
+        gameSequences = new int[lines.size()][];
+        AtomicInteger a = new AtomicInteger();
+        lines.forEach(l -> gameSequences[a.getAndIncrement()] =
+                Arrays.stream(l.split(COMMA)).mapToInt(Utils::convertToInt).toArray());
+        logger.info("Game sequences load as " + Arrays.deepToString(gameSequences));
+    }
+
     private void loadGameConfigs() {
         List<String> paths = Utils.listFiles(GAME_CONFIGS_LOC, logger);
         paths.forEach(p -> {
@@ -471,7 +496,7 @@ public class MatchPair extends AppFrame {
     public void changeAppFont() {
         SwingUtils.applyAppFont(this, appFontSize, this, logger);
         changeGameBtnFont();
-        SwingUtils.applyAppFont(txtUser, appFontSize, this, logger);
+        SwingUtils.changeFont(txtUser, appFontSize);
     }
 
     // This will be called by reflection from SwingUI jar
@@ -585,7 +610,7 @@ public class MatchPair extends AppFrame {
     private GameInfo getGameInfoFor(int gameLevel) {
         GameInfo gi = gameInfos.containsKey(gameLevel + "") ?
                 gameInfos.get(gameLevel + "") : gameInfos.get("default");
-        logger.info("Returning game info for level " + Utils.addBraces(gameLevel) + " as " + gi);
+        logger.info("Returning game info for level " + Utils.addBraces(gameLevel));
         return gi;
     }
 
@@ -604,13 +629,20 @@ public class MatchPair extends AppFrame {
             lblTime.setForeground(fg);
         }
         if (gameTime <= ALARM_TIME_SEC && gameTime > 0) {
-            lblTime.setForeground(Color.red);
+            lblTime.setForeground(lblTime.getForeground() == fg ? Color.red : fg);
         }
         lblTime.setText(UIName.LBL_TIME.name + SPACE + Utils.formatTime(gameTime--));
     }
 
     public boolean isGameRunning() {
+        if (isGamePaused()) {
+            performPauseAction();
+        }
         return isGameStart() || isGamePaused();
+    }
+
+    private void performPauseAction() {
+        btnPause.setForeground(btnPause.getForeground() == fg ? Color.red : fg);
     }
 
     public boolean isGameStart() {
@@ -637,11 +669,9 @@ public class MatchPair extends AppFrame {
     private void saveUsername() {
         username = txtUser.getText().trim();
         if (isValidName(username)) {
-            btnUser.setVisible(true);
-            txtUser.setVisible(false);
             btnUser.setText(UIName.BTN_USER.name + SPACE + username);
-            userPanel.remove(txtUser);
-            userPanel.add(btnUser);
+            // just to hide controls
+            doNotSaveUsername();
             if (!gameScores.containsKey(username)) {
                 gameScores.put(username, new GameScores(username, null));
             }
@@ -654,6 +684,13 @@ public class MatchPair extends AppFrame {
                 txtUser.setText("Fill Name");
             }
         }
+    }
+
+    private void doNotSaveUsername() {
+        btnUser.setVisible(true);
+        txtUser.setVisible(false);
+        userPanel.remove(txtUser);
+        userPanel.add(btnUser);
     }
 
     private boolean isValidName(String username) {
@@ -672,6 +709,7 @@ public class MatchPair extends AppFrame {
             hideGamePanel();
         } else {
             btnPause.setText(UIName.BTN_PAUSE.name);
+            btnPause.setForeground(fg);
             showGamePanel();
         }
     }

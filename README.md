@@ -1,5 +1,10 @@
 # MatchPair
-Game in Java for MatchPair
+
+###### Game in Java for MatchPair. This game provides
+* Selective Attention<br>
+  _Focus on a particular object while avoiding distractions_
+* Visual Recognition<br>
+  _Perceiving an object's physical properties and identifying it_
 
 > * Below modules are the dependencies for this project
 >   - Core-Parent module `https://github.com/svermaji/Core-Parent`
@@ -12,14 +17,15 @@ Game in Java for MatchPair
 * **Blogs:** https://sv-technical.blogspot.com/
 
 ## Description
-* Support search as you type
-* Clipboard support via menu
-* Memory indicator added to application, and can be used to free memory
-* If file to search/read does not exist then user has choice to remove it from recent entry
-* User can lock screen with a password and change password
-* Added export button and cleanup button for old exports. 
-* Clipboard popup will appear to set file name.
+* It's a GAME !!!
+* User can start game that is for 80 seconds
+* Game rule - in each level you need to match 3 pairs and level will increase.
+    * If user clicks wrong level restarts.
+* User can Pause/Resume game.
+* Timer is provided and start warning when time is about to finish by flashing.
+* User can set font for application and game buttons. Color selection is also available
+* Username can be set and score per user will be stored along with high scores.
 
-#### Images of different stages of development/features since day 1
+#### Application Images
 * Application Present Image<br>
-![Image of Yaktocat](https://github.com/svermaji/SearchBigFile/blob/master/app-images/app-image-19-oct-2021.png)
+![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-1-dec-2021.png)

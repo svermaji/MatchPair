@@ -7,7 +7,7 @@ import java.util.List;
 
 public enum UIName {
     BTN_USER("Hi", 'u', "Username, click to change"),
-    LBL_USER("Username", 'u', "set Username and hit enter to save"),
+    LBL_USER("", 'u', "Set Username. Hit enter to save & ESC to cancel"),
     BTN_START("Start", 's', "Start/Stop the game"),
     BTN_LEVEL("Level", 'v', "Present level of the game"),
     BTN_PAUSE("Pause", 'p', "Pause/Resume the game"),

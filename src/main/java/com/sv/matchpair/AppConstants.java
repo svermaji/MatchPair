@@ -12,6 +12,8 @@ public final class AppConstants {
     public static final int ALARM_TIME_SEC = 5;
     public static final int GAME_TIME_SEC = 80;
     public static final int DEFAULT_TABLE_ROWS = 8;
+    public static final int GAME_SEQ_LIMIT_MAX = 8;
+    public static final int GAME_SEQ_LIMIT_MIN = 2;
     public static final int PAIRS_COUNT = 3;
     public static final String SCORE_DATA_SEP = Constants.PIPE;
     public static final String SCORE_DATA_SEP_FOR_SPLIT = Constants.SLASH + SCORE_DATA_SEP;
@@ -21,15 +23,6 @@ public final class AppConstants {
             'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
             'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X',
             'Y', 'Z', '1', '2', '3', '4', '5', '6', '7', '8', '9'
-    };
-
-    public static final Integer[][] GAME_COLOR_SEQUENCES = {
-            {7, 6, 5, 4, 3},
-            {9, 8, 5, 5, 3},
-            {7, 7, 6, 6, 4},
-            {13, 6, 6, 3, 2},
-            {9, 7, 6, 2, 6},
-            {5, 4, 7, 6, 8}
     };
 
     public static final Color GAME_BTN_COLOR = Color.white;

@@ -1,6 +1,8 @@
 package com.sv.matchpair;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public final class GameScores {
 
@@ -17,14 +19,13 @@ public final class GameScores {
     }
 
     public List<GameScore> getTopScores() {
-        List<GameScore> topScore = new ArrayList<>();
-        topScore.addAll(scores);
-        topScore.sort(Comparator.comparing(GameScore::getScore).reversed());
+        List<GameScore> topScore = new ArrayList<>(scores);
+        topScore.sort(Comparator.comparing(GameScore::getScoreAsInt).reversed());
         return topScore;
     }
 
-    public String getTopScore() {
-        return getTopScores().size() > 0 ? getTopScores().get(0).getScore() : "0";
+    public Integer getTopScore() {
+        return getTopScores().size() > 0 ? getTopScores().get(0).getScoreAsInt() : 0;
     }
 
     public List<GameScore> getRecentScores() {
