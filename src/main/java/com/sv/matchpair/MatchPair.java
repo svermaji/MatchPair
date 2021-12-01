@@ -18,18 +18,18 @@ import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.FileOutputStream;
 import java.util.*;
 import java.util.List;
 import java.util.Timer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static com.sv.core.Constants.*;
 import static com.sv.matchpair.AppConstants.*;
 import static com.sv.matchpair.AppUtils.lastButton;
 import static com.sv.swingui.UIConstants.*;
+import static java.util.Map.Entry.comparingByValue;
+import static java.util.stream.Collectors.toMap;
 
 /**
  * Java Game as MatchPair
@@ -43,7 +43,7 @@ public class MatchPair extends AppFrame {
      * e.g. if enum is Xyz then when storing getXyz will be called
      */
     public enum Configs {
-        AppFontSize, GameBtnFontSize, CNFIdx, Username, Usernames
+        AppFontSize, GameBtnFontSize, CNFIdx, Username
     }
 
     public enum Status {
@@ -72,13 +72,12 @@ public class MatchPair extends AppFrame {
     private final CellRendererCenterAlign CENTER_RENDERER = new CellRendererCenterAlign();
 
     private Status gameStatus = Status.NOT_STARTED;
-    private String username, usernames, fontName, topScores, recentScores;
+    private String username, fontName, topScores, recentScores;
     private int gameLevel = 1, gameScore, cnfIdx = 0, gameBtnFontSize;
 
     private final String TITLE_HEADING = "Controls";
     private final String GAME_SCORE_LOC = "./src/main/resources/scores.config";
     private final String GAME_CONFIGS_LOC = "./src/main/resources/game-configs";
-    private final int GAME_TIME_SEC = 80;
     private final int MAX_NAME = 12;
 
     public static int gamePairMatched = 0;
@@ -244,8 +243,8 @@ public class MatchPair extends AppFrame {
     private void loadTableData() {
         GameScores gs = gameScores.get(username);
         if (gs != null) {
-            populateScoreTbl(gs.getTopScore(), topScoreModel);
-            populateScoreTbl(gs.getRecentScore(), recentScoreModel);
+            populateScoreTbl(gs.getTopScores(), topScoreModel);
+            populateScoreTbl(gs.getRecentScores(), recentScoreModel);
         }
         populateUsersTopScore(userModel);
     }
@@ -271,17 +270,15 @@ public class MatchPair extends AppFrame {
         model.setRowCount(0);
         int sz = gameScores.size();
         int a = 0;
+        Map<String, String> topScores = new ConcurrentHashMap<>();
         for (GameScores v : gameScores.values()) {
-            if (a++ > DEFAULT_TABLE_ROWS) {
-                break;
-            }
-            String ts = v.getTopScore().size() > 0 ? v.getTopScore().get(0).getScore() : "0";
-            model.addRow(new String[]{v.getUsername(), ts});
+            topScores.put(v.getUsername(), v.getTopScore());
         }
-        if (DEFAULT_TABLE_ROWS > sz) {
-            int n = DEFAULT_TABLE_ROWS - sz;
-            SwingUtils.createEmptyRows(model.getColumnCount(), n, model);
-        }
+        Map<String, String> sorted = topScores.entrySet().stream()
+                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2, LinkedHashMap::new));
+
+        sorted.forEach((k, v) -> model.addRow(new String[]{k, v}));
     }
 
     public List<GameButton> prepareGameButtons(GameInfo gi) {
@@ -394,7 +391,7 @@ public class MatchPair extends AppFrame {
         String[] scoreDate = scoreStr.split(AppConstants.SCORE_SEP);
         Arrays.stream(scoreDate).forEach(sd -> {
             if (Utils.hasValue(sd)) {
-                String[] arr = sd.split(AppConstants.SCORE_DATA_SEP);
+                String[] arr = sd.split(AppConstants.SCORE_DATA_SEP_FOR_SPLIT);
                 list.add(new GameScore(arr[0], arr[1]));
             }
         });
@@ -451,12 +448,10 @@ public class MatchPair extends AppFrame {
         if (!Utils.hasValue(username)) {
             username = "default";
         }
-        usernames = configs.getConfig(Configs.Usernames.name());
         gameBtnFontSize = configs.getIntConfig(Configs.GameBtnFontSize.name());
         logger.info("All configs: cnfIdx [" + cnfIdx +
                 "], appFontSize [" + appFontSize +
                 "], gameBtnFontSize [" + gameBtnFontSize +
-                "], Usernames [" + usernames +
                 "], username " + Utils.addBraces(username));
     }
 
@@ -547,6 +542,9 @@ public class MatchPair extends AppFrame {
         gameTime = GAME_TIME_SEC;
         gameStatus = Status.START;
         gameScore = 0;
+        updateScore();
+        updateLevel();
+        updateGameTime();
         showGamePanel();
     }
 
@@ -594,14 +592,19 @@ public class MatchPair extends AppFrame {
     public void stopGame() {
         hideGamePanel();
         enableControls();
-        gameScores.get(username).addScore(new GameScore(gameScore+"", Utils.getDateDDMMYYYY()));
-        loadGameScores();
+        gameScores.get(username).addScore(new GameScore(gameScore + "", Utils.getDateDDMMYYYY()));
+        loadTableData();
+        cancelTimers();
     }
 
     public void updateGameTime() {
         if (gameTime == 0) {
             gameStatus = Status.STOP;
             stopGame();
+            lblTime.setForeground(fg);
+        }
+        if (gameTime <= ALARM_TIME_SEC && gameTime > 0) {
+            lblTime.setForeground(Color.red);
         }
         lblTime.setText(UIName.LBL_TIME.name + SPACE + Utils.formatTime(gameTime--));
     }
@@ -677,12 +680,31 @@ public class MatchPair extends AppFrame {
      * Exit the Application
      */
     private void exitForm() {
+        saveScores();
         cancelTimers();
         configs.saveConfig(this);
         setVisible(false);
         dispose();
         logger.dispose();
         System.exit(0);
+    }
+
+    private void saveScores() {
+        Properties prop = new Properties();
+        gameScores.values().forEach(gs -> {
+            prop.setProperty(gs.getUsername() + PROP_SCORES_SUFFIX, prepareScoreCsv(gs.getRecentScores()));
+        });
+        Utils.saveProperties(prop, GAME_SCORE_LOC, logger);
+    }
+
+    private String prepareScoreCsv(List<GameScore> score) {
+        StringBuilder sb = new StringBuilder();
+        score.forEach(s -> sb.append(s.getScore())
+                .append(SCORE_DATA_SEP)
+                .append(s.getDate())
+                .append(SCORE_SEP)
+        );
+        return sb.toString();
     }
 
     private void cancelTimers() {
@@ -729,7 +751,4 @@ public class MatchPair extends AppFrame {
         return username;
     }
 
-    public String getUsernames() {
-        return usernames;
-    }
 }

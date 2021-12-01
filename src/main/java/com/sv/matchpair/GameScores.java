@@ -16,14 +16,18 @@ public final class GameScores {
         return username;
     }
 
-    public List<GameScore> getTopScore() {
+    public List<GameScore> getTopScores() {
         List<GameScore> topScore = new ArrayList<>();
         topScore.addAll(scores);
         topScore.sort(Comparator.comparing(GameScore::getScore).reversed());
         return topScore;
     }
 
-    public List<GameScore> getRecentScore() {
+    public String getTopScore() {
+        return getTopScores().size() > 0 ? getTopScores().get(0).getScore() : "0";
+    }
+
+    public List<GameScore> getRecentScores() {
         return scores;
     }
 
@@ -35,8 +39,7 @@ public final class GameScores {
     public String toString() {
         return "GameScores{" +
                 "username='" + username + '\'' +
-                ", topScore=" + getTopScore() +
-                ", recentScore=" + scores +
+                ", scores=" + scores +
                 '}';
     }
 }
