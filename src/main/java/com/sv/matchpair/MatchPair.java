@@ -166,18 +166,7 @@ public class MatchPair extends AppFrame {
         uin = UIName.LBL_SCORE;
         lblScore = new AppLabel(uin.name, uin.mnemonic, uin.tip);
         updateScore();
-        uin = UIName.MENU;
         menuBar = new JMenuBar();
-        //menu = new AppMenu(uin.name, uin.mnemonic, uin.tip);
-        /*menu = new AppMenu(uin.name, uin.mnemonic, uin.tip) {
-            @Override
-            public Dimension getPreferredSize() {
-                return menuBar.getPreferredSize();
-            }
-        };
-        menu.add(SwingUtils.getColorsMenu(true, true,
-                true, true, false, this, logger));
-        menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));*/
 
         AppLabel[] lbls = {lblLevel, lblTime, lblScore};
         Arrays.stream(lbls).forEach(l -> l.setHorizontalAlignment(SwingConstants.CENTER));
@@ -222,14 +211,23 @@ public class MatchPair extends AppFrame {
             storeAndLoad();
         }
 
-/*
-        //menu = new AppMenu(uin.name, uin.mnemonic, uin.tip);
+        uin = UIName.MENU;
         menu = new AppMenu(uin.name, uin.mnemonic, uin.tip) {
             @Override
             public Dimension getPreferredSize() {
-                return menuBar.getPreferredSize();
+                Dimension d = super.getPreferredSize();
+                d.width = Math.max(d.width, menuBar.getWidth()); // set minimums
+                d.height = Math.max(d.height, menu.getHeight());
+                return d;
             }
         };
+
+        menu.add(SwingUtils.getColorsMenu(true, true,
+                true, true, false, this, logger));
+        menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
+        menuBar.add(menu);
+
+        SwingUtils.updateUIFor(menuBar);
 
         componentsToColor = new JComponent[]{btnUser, txtUser, btnStart, btnPause, lblLevel, lblTime, lblScore,
                 menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
@@ -239,7 +237,7 @@ public class MatchPair extends AppFrame {
         colorChange(cnfIdx);
         setControlsToEnable();
         addBindings();
-*/
+
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
     }
 
@@ -523,41 +521,7 @@ public class MatchPair extends AppFrame {
         SwingUtils.changeFont(btnsPanel, gameBtnFontSize);
     }
 
-    private void delayedActions() {
-        // delay in addition of menu to making it size of JMenuBar
-        UIName uin = UIName.MENU;
-        menu = new AppMenu(uin.name, uin.mnemonic, uin.tip) {
-            @Override
-            public Dimension getPreferredSize() {
-                Dimension d = super.getPreferredSize();
-                d.width = Math.max(d.width, menuBar.getWidth()); // set minimums
-                d.height = Math.max(d.height, menuBar.getHeight());
-                return d;
-            }
-        };
-
-        menuBar.setMargin(ZERO_MARGIN);
-        componentsToColor = new JComponent[]{btnUser, txtUser, btnStart, btnPause, lblLevel, lblTime, lblScore,
-                menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
-                tblUsers.getTableHeader()
-        };
-
-        menu.add(SwingUtils.getColorsMenu(true, true,
-                true, true, false, this, logger));
-        menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
-        menuBar.add(menu);
-        menu.setHorizontalTextPosition(SwingConstants.CENTER);
-        menu.revalidate();
-        SwingUtils.updateUIFor(menu);
-        SwingUtils.updateUIFor(menuBar);
-
-        colorChange(cnfIdx);
-        setControlsToEnable();
-        addBindings();
-    }
-
     public void changeAppFont() {
-        delayedActions();
         SwingUtils.applyAppFont(this, appFontSize, this, logger);
         changeGameBtnFont();
         SwingUtils.changeFont(txtUser, appFontSize);
