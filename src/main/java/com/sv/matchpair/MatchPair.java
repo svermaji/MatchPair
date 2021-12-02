@@ -557,10 +557,10 @@ public class MatchPair extends AppFrame {
     }
 
     public void changeAppFont() {
+        delayedActions();
         SwingUtils.applyAppFont(this, appFontSize, this, logger);
         changeGameBtnFont();
         SwingUtils.changeFont(txtUser, appFontSize);
-        delayedActions();
     }
 
     // This will be called by reflection from SwingUI jar
@@ -603,6 +603,10 @@ public class MatchPair extends AppFrame {
         SwingUtils.setComponentColor(btnExit, hbg, hfg, bg, fg);
         Arrays.stream(componentsToColor).forEach(c ->
                 SwingUtils.applyTooltipColorNFont(c, bg, fg, SwingUtils.getNewFont(c.getFont(), fontName)));
+
+        AppTable[] tbls = {tblUsers, tblTopScore, tblRecentScore};
+        Arrays.stream(tbls).forEach(t -> t.setRowHeight(appFontSize + 4));
+
         // will set colors for pwd screens
         setAppColors(fg, bg, hfg, hbg);
     }
