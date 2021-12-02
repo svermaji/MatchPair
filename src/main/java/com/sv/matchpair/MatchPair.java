@@ -504,8 +504,6 @@ public class MatchPair extends AppFrame {
         appFontSize = fs;
         logger.info("Application font changed to " + Utils.addBraces(fs));
 
-        TitledBorder[] borders = {titledBorder};
-        Arrays.stream(borders).forEach(t -> t.setTitleFont(SwingUtils.getNewFontSize(t.getTitleFont(), fs)));
         // calling to change tooltip font
         changeAppColor();
     }
@@ -529,7 +527,10 @@ public class MatchPair extends AppFrame {
         createBorders();
         titledBorder = SwingUtils.createTitledBorder(TITLE_HEADING, fg);
         TitledBorder[] toTitleColor = {titledBorder};
-        Arrays.stream(toTitleColor).forEach(t -> t.setTitleColor(fg));
+        Arrays.stream(toTitleColor).forEach(t -> {
+            t.setTitleColor(fg);
+            t.setTitleFont(SwingUtils.getNewFontSize(t.getTitleFont(), appFontSize));
+        });
         topPanel.setBorder(titledBorder);
 
         Arrays.stream(componentsToColor).forEach(c -> c.setBorder(SwingUtils.createLineBorder(fg)));
