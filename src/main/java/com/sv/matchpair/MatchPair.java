@@ -523,7 +523,7 @@ public class MatchPair extends AppFrame {
         SwingUtils.changeFont(btnsPanel, gameBtnFontSize);
     }
 
-    public void delayedActions() {
+    private void delayedActions() {
         // delay in addition of menu to making it size of JMenuBar
         UIName uin = UIName.MENU;
         menu = new AppMenu(uin.name, uin.mnemonic, uin.tip) {
@@ -560,6 +560,7 @@ public class MatchPair extends AppFrame {
         SwingUtils.applyAppFont(this, appFontSize, this, logger);
         changeGameBtnFont();
         SwingUtils.changeFont(txtUser, appFontSize);
+        delayedActions();
     }
 
     // This will be called by reflection from SwingUI jar
