@@ -1,14 +1,21 @@
 package com.sv.matchpair;
 
+import com.sv.core.Constants;
 import com.sv.core.Utils;
 
 public final class GameScore {
 
-    private final String score, date;
+    private final String score, date, accuracy, level;
 
-    public GameScore(String score, String date) {
+    public GameScore(int score, String date, int accuracy, int level) {
+        this(score + Constants.SPACE, date, accuracy + Constants.SPACE, level + Constants.SPACE);
+    }
+
+    public GameScore(String score, String date, String accuracy, String level) {
         this.score = score;
         this.date = date;
+        this.accuracy = accuracy;
+        this.level = level;
     }
 
     public String getScore() {
@@ -24,11 +31,21 @@ public final class GameScore {
         return date;
     }
 
+    public String getAccuracy() {
+        return accuracy;
+    }
+
+    public String getLevel() {
+        return level;
+    }
+
     @Override
     public String toString() {
         return "GameScore{" +
                 "score='" + score + '\'' +
                 ", date='" + date + '\'' +
+                ", accuracy='" + accuracy + '\'' +
+                ", level='" + level + '\'' +
                 '}';
     }
 }

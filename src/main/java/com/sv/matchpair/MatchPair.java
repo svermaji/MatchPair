@@ -74,7 +74,8 @@ public class MatchPair extends AppFrame {
 
     private Status gameStatus = Status.NOT_STARTED;
     private String username, fontName, topScores, recentScores;
-    private int gameLevel = 1, gameScore, cnfIdx = 0, gameBtnFontSize;
+    private int gameLevel = 1, gameScore, gameAccuracy, cnfIdx = 0, gameBtnFontSize,
+            totalCorrectPairs, totalWrongPairs;
 
     private final String TITLE_HEADING = "Controls";
     private final String GAME_SCORE_LOC = "./src/main/resources/scores.config";
@@ -224,9 +225,9 @@ public class MatchPair extends AppFrame {
     }
 
     private void setAllTables() {
-        String[] topScoreCols = new String[]{"Top Score", "Date"};
-        String[] recentScoreCols = new String[]{"Recent Score", "Date"};
-        String[] userCols = new String[]{"User", "Top Score"};
+        String[] topScoreCols = new String[]{"Top Score", "Date", "Accuracy", "Level"};
+        String[] recentScoreCols = new String[]{"Recent Score", "Date", "Accuracy", "Level"};
+        String[] userCols = new String[]{"User", "Top Score", "Accuracy", "Level"};
 
         topScoreModel = SwingUtils.getTableModel(topScoreCols);
         recentScoreModel = SwingUtils.getTableModel(recentScoreCols);
@@ -264,7 +265,7 @@ public class MatchPair extends AppFrame {
         for (int i = 0; i < sz; i++) {
             if (i < DEFAULT_TABLE_ROWS - 1) {
                 GameScore gs = list.get(i);
-                model.addRow(new String[]{gs.getScore(), gs.getDate()});
+                model.addRow(new String[]{gs.getScore(), gs.getDate(), gs.getAccuracy(), gs.getLevel()});
             }
         }
         if (DEFAULT_TABLE_ROWS > sz) {
@@ -276,15 +277,19 @@ public class MatchPair extends AppFrame {
     private void populateUsersTopScore(DefaultTableModel model) {
         // empty
         model.setRowCount(0);
-        Map<String, Integer> topScores = new ConcurrentHashMap<>();
+        Map<Integer, GameScores> topScores = new ConcurrentHashMap<>();
         for (GameScores v : gameScores.values()) {
-            topScores.put(v.getUsername(), v.getTopScore());
+            topScores.put(v.getTopScore(), v);
         }
-        Map<String, Integer> sorted = topScores.entrySet().stream()
-                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
+        Map<Integer, GameScores> sorted = topScores.entrySet().stream()
+                .sorted(Collections.reverseOrder(Map.Entry.comparingByKey()))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2, LinkedHashMap::new));
 
-        sorted.forEach((k, v) -> model.addRow(new String[]{k, v + ""}));
+        sorted.forEach((k, v) -> model.addRow(new String[]{k + "",
+                v.getTopScores().get(0).getScore(),
+                v.getTopScores().get(0).getAccuracy(),
+                v.getTopScores().get(0).getLevel(),
+        }));
     }
 
     public List<GameButton> prepareGameButtons(GameInfo gi) {
@@ -345,6 +350,7 @@ public class MatchPair extends AppFrame {
             gamePairMatched++;
             gameScore += gameInfo.getMatchScore();
             updateScore();
+            totalCorrectPairs++;
             if (gamePairMatched == PAIRS_COUNT) {
                 gameLevel++;
                 updateLevel();
@@ -357,6 +363,7 @@ public class MatchPair extends AppFrame {
                 lastButton = null;
                 gb = null;
                 gamePairMatched = 0;
+                totalWrongPairs++;
                 gameLevelFailed();
             }
         }
@@ -408,7 +415,7 @@ public class MatchPair extends AppFrame {
         Arrays.stream(scoreDate).forEach(sd -> {
             if (Utils.hasValue(sd)) {
                 String[] arr = sd.split(AppConstants.SCORE_DATA_SEP_FOR_SPLIT);
-                list.add(new GameScore(arr[0], arr[1]));
+                list.add(new GameScore(arr[0], arr[1], arr[2], arr[3]));
             }
         });
         return list;
@@ -523,6 +530,7 @@ public class MatchPair extends AppFrame {
         }
     }
 
+    //todo do accurracy
     private void changeAppColor() {
         createBorders();
         titledBorder = SwingUtils.createTitledBorder(TITLE_HEADING, fg);
@@ -565,6 +573,9 @@ public class MatchPair extends AppFrame {
 
     private void resetGame() {
         gameLevel = 1;
+        gameAccuracy = 0;
+        totalWrongPairs = 0;
+        totalCorrectPairs = 0;
         gameTime = GAME_TIME_SEC;
         gameStatus = Status.START;
         gameScore = 0;
@@ -618,7 +629,8 @@ public class MatchPair extends AppFrame {
     private void endGame() {
         hideGamePanel();
         enableControls();
-        gameScores.get(username).addScore(new GameScore(gameScore + "", Utils.getDateDDMMYYYY()));
+        gameAccuracy = (totalCorrectPairs / (totalCorrectPairs + totalWrongPairs)) * 100;
+        gameScores.get(username).addScore(new GameScore(gameScore, Utils.getDateDDMMYYYY(), gameAccuracy, gameLevel));
         loadTableData();
         cancelTimers();
     }
@@ -762,6 +774,10 @@ public class MatchPair extends AppFrame {
         score.forEach(s -> sb.append(s.getScore())
                 .append(SCORE_DATA_SEP)
                 .append(s.getDate())
+                .append(SCORE_DATA_SEP)
+                .append(s.getAccuracy())
+                .append(SCORE_DATA_SEP)
+                .append(s.getLevel())
                 .append(SCORE_SEP)
         );
         return sb.toString();
