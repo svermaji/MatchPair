@@ -167,10 +167,17 @@ public class MatchPair extends AppFrame {
         lblScore = new AppLabel(uin.name, uin.mnemonic, uin.tip);
         updateScore();
         uin = UIName.MENU;
-        menu = new AppMenu(uin.name, uin.mnemonic, uin.tip);
+        menuBar = new JMenuBar();
+        //menu = new AppMenu(uin.name, uin.mnemonic, uin.tip);
+        /*menu = new AppMenu(uin.name, uin.mnemonic, uin.tip) {
+            @Override
+            public Dimension getPreferredSize() {
+                return menuBar.getPreferredSize();
+            }
+        };
         menu.add(SwingUtils.getColorsMenu(true, true,
                 true, true, false, this, logger));
-        menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
+        menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));*/
 
         AppLabel[] lbls = {lblLevel, lblTime, lblScore};
         Arrays.stream(lbls).forEach(l -> l.setHorizontalAlignment(SwingConstants.CENTER));
@@ -185,10 +192,6 @@ public class MatchPair extends AppFrame {
         tbControls.add(lblLevel);
         tbControls.add(lblTime);
         tbControls.add(lblScore);
-        menuBar = new JMenuBar();
-        menuBar.add(menu);
-        menu.setAlignmentX(SwingUtilities.CENTER);
-        menu.setSize(menuBar.getSize());
         tbControls.add(menuBar);
         tbControls.add(btnExit);
         tbControls.setLayout(new GridLayout(1, tbControls.getComponentCount()));
@@ -203,24 +206,40 @@ public class MatchPair extends AppFrame {
         createButtons();
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tblPanel, buttonsPanel);
         splitPane.setOneTouchExpandable(true);
-        splitPane.setResizeWeight(0.1);
+        splitPane.setResizeWeight(0.01);
         centerPanel.add(splitPane, BorderLayout.CENTER);
         parentContainer.add(topPanel, BorderLayout.NORTH);
         parentContainer.add(centerPanel, BorderLayout.CENTER);
-
-
-        componentsToColor = new JComponent[]{btnUser, txtUser, btnStart, btnPause, lblLevel, lblTime, lblScore,
-                menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
-                tblUsers.getTableHeader()
-        };
-        colorChange(cnfIdx);
-        setControlsToEnable();
-        addBindings();
 
         maximiseWin();
         enableControls();
         SwingUtils.getInFocus(btnStart);
         hideGamePanel();
+        if (!Utils.hasValue(username)) {
+            username = "default";
+        }
+        if (gameScores.isEmpty()) {
+            storeAndLoad();
+        }
+
+/*
+        //menu = new AppMenu(uin.name, uin.mnemonic, uin.tip);
+        menu = new AppMenu(uin.name, uin.mnemonic, uin.tip) {
+            @Override
+            public Dimension getPreferredSize() {
+                return menuBar.getPreferredSize();
+            }
+        };
+
+        componentsToColor = new JComponent[]{btnUser, txtUser, btnStart, btnPause, lblLevel, lblTime, lblScore,
+                menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
+                tblUsers.getTableHeader()
+        };
+
+        colorChange(cnfIdx);
+        setControlsToEnable();
+        addBindings();
+*/
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
     }
 
@@ -285,11 +304,15 @@ public class MatchPair extends AppFrame {
                 .sorted(Collections.reverseOrder(Map.Entry.comparingByKey()))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2, LinkedHashMap::new));
 
-        sorted.forEach((k, v) -> model.addRow(new String[]{k + "",
-                v.getTopScores().get(0).getScore(),
-                v.getTopScores().get(0).getAccuracy(),
-                v.getTopScores().get(0).getLevel(),
-        }));
+        sorted.forEach((k, v) -> {
+            boolean hasData = v.getTopScores().size() > 0;
+            model.addRow(new String[]{v.getUsername(),
+                            k + "",
+                            hasData ? v.getTopScores().get(0).getAccuracy() : "0",
+                            hasData ? v.getTopScores().get(0).getLevel() : "0"
+                    }
+            );
+        });
     }
 
     public List<GameButton> prepareGameButtons(GameInfo gi) {
@@ -500,6 +523,39 @@ public class MatchPair extends AppFrame {
         SwingUtils.changeFont(btnsPanel, gameBtnFontSize);
     }
 
+    public void delayedActions() {
+        // delay in addition of menu to making it size of JMenuBar
+        UIName uin = UIName.MENU;
+        menu = new AppMenu(uin.name, uin.mnemonic, uin.tip) {
+            @Override
+            public Dimension getPreferredSize() {
+                Dimension d = super.getPreferredSize();
+                d.width = Math.max(d.width, menuBar.getWidth()); // set minimums
+                d.height = Math.max(d.height, menuBar.getHeight());
+                return d;
+            }
+        };
+
+        menuBar.setMargin(ZERO_MARGIN);
+        componentsToColor = new JComponent[]{btnUser, txtUser, btnStart, btnPause, lblLevel, lblTime, lblScore,
+                menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
+                tblUsers.getTableHeader()
+        };
+
+        menu.add(SwingUtils.getColorsMenu(true, true,
+                true, true, false, this, logger));
+        menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
+        menuBar.add(menu);
+        menu.setHorizontalTextPosition(SwingConstants.CENTER);
+        menu.revalidate();
+        SwingUtils.updateUIFor(menu);
+        SwingUtils.updateUIFor(menuBar);
+
+        colorChange(cnfIdx);
+        setControlsToEnable();
+        addBindings();
+    }
+
     public void changeAppFont() {
         SwingUtils.applyAppFont(this, appFontSize, this, logger);
         changeGameBtnFont();
@@ -530,7 +586,6 @@ public class MatchPair extends AppFrame {
         }
     }
 
-    //todo do accurracy
     private void changeAppColor() {
         createBorders();
         titledBorder = SwingUtils.createTitledBorder(TITLE_HEADING, fg);
@@ -627,9 +682,17 @@ public class MatchPair extends AppFrame {
     }
 
     private void endGame() {
+        gameAccuracy = (totalCorrectPairs * 100) / (totalCorrectPairs + totalWrongPairs);
+        logger.info("Game end as username [" + username +
+                "], gameScore [" + gameScore +
+                "], gameAccuracy [" + gameAccuracy +
+                "], gameLevel [" + gameLevel +
+                "], totalCorrectPairs [" + totalCorrectPairs +
+                "], totalWrongPairs [" + totalWrongPairs +
+                "]"
+        );
         hideGamePanel();
         enableControls();
-        gameAccuracy = (totalCorrectPairs / (totalCorrectPairs + totalWrongPairs)) * 100;
         gameScores.get(username).addScore(new GameScore(gameScore, Utils.getDateDDMMYYYY(), gameAccuracy, gameLevel));
         loadTableData();
         cancelTimers();
@@ -698,10 +761,7 @@ public class MatchPair extends AppFrame {
             btnUser.setText(UIName.BTN_USER.name + SPACE + username);
             // just to hide controls
             doNotSaveUsername();
-            if (!gameScores.containsKey(username)) {
-                gameScores.put(username, new GameScores(username, null));
-            }
-            loadTableData();
+            storeAndLoad();
         } else {
             getToolkit().beep();
             if (username.length() > MAX_NAME) {
@@ -710,6 +770,13 @@ public class MatchPair extends AppFrame {
                 txtUser.setText("Fill Name");
             }
         }
+    }
+
+    private void storeAndLoad() {
+        if (!gameScores.containsKey(username)) {
+            gameScores.put(username, new GameScores(username, null));
+        }
+        loadTableData();
     }
 
     private void doNotSaveUsername() {

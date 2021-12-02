@@ -15,5 +15,6 @@ public class AppFontChangerTask extends TimerTask {
     @Override
     public void run() {
         mp.changeAppFont();
+        mp.delayedActions();
     }
 }

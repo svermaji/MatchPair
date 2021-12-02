@@ -10,7 +10,7 @@ public final class AppConstants {
     }
 
     public static final int ALARM_TIME_SEC = 5;
-    public static final int GAME_TIME_SEC = 80;
+    public static final int GAME_TIME_SEC = 20;
     public static final int DEFAULT_TABLE_ROWS = 8;
     public static final int GAME_SEQ_LIMIT_MAX = 8;
     public static final int GAME_SEQ_LIMIT_MIN = 2;
