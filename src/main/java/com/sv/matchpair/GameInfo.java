@@ -2,6 +2,7 @@ package com.sv.matchpair;
 
 import java.awt.*;
 import java.util.Arrays;
+import java.util.Random;
 
 public final class GameInfo {
 
@@ -35,6 +36,24 @@ public final class GameInfo {
 
     public Color[] getColors() {
         return colors;
+    }
+
+    public Color[] getColorsRandomly() {
+        Random rand = new Random();
+        int len = colors.length;
+        Color[] cr = new Color[len];
+        for (int i = 0; i < len; i++) {
+            cr[i] = colors[rand.nextInt(len)];
+        }
+        return cr;
+        /*for (int i = 0; i < len; i++) {
+            Color c = colors[rand.nextInt(len)];
+            if (!cr.contains(c)) {
+                cr.add(c);
+            }
+        }
+        return cr.toArray(new Color[0]);*/
+
     }
 
     public void setColors(Color[] colors) {

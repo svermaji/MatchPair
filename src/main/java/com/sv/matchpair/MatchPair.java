@@ -367,7 +367,7 @@ public class MatchPair extends AppFrame {
         Arrays.stream(seq).forEach(i -> {
             for (int j = 0; j < i; j++) {
                 list.add(new GameButton(chList.get(t.getAndIncrement()) + Constants.EMPTY,
-                        gi.getColors()[k.intValue()], this));
+                        gi.getColorsRandomly()[k.intValue()], this));
             }
             k.getAndIncrement();
         });
