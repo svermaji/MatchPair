@@ -9,7 +9,8 @@ public final class AppConstants {
     private AppConstants() {
     }
 
-    public static final int GAME_START_TIME_SEC = 3;
+    public static final int WRONG_PAIR_MSG_TIME = 300; // milliseconds
+    public static final int GAME_WAIT_TIME_SEC = 3;
     public static final int ALARM_TIME_SEC = 5;
     public static final int GAME_TIME_SEC = 80;
     public static final int DEFAULT_TABLE_ROWS = 8;

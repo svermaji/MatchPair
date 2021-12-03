@@ -21,7 +21,7 @@ public final class GameButton extends AppButton {
         GameButton thisObj = this;
         addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(MouseEvent e) {
+            public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isLeftMouseButton(e)) {
                     if (isVisible() && isEnabled()) {
                         setBackground(

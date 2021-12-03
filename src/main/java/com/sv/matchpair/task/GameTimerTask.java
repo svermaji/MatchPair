@@ -18,5 +18,8 @@ public class GameTimerTask extends TimerTask {
         if (mp.isGameStart()) {
             mp.updateGameTime();
         }
+        if (mp.isGamePaused()) {
+            mp.performPauseAction();
+        }
     }
 }

@@ -19,9 +19,9 @@ import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.*;
 import java.util.List;
 import java.util.Timer;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -29,7 +29,6 @@ import static com.sv.core.Constants.*;
 import static com.sv.matchpair.AppConstants.*;
 import static com.sv.matchpair.AppUtils.lastButton;
 import static com.sv.swingui.UIConstants.*;
-import static java.util.Map.Entry.comparingByValue;
 import static java.util.stream.Collectors.toMap;
 
 /**
@@ -66,18 +65,17 @@ public class MatchPair extends AppFrame {
     private DefaultTableModel topScoreModel, recentScoreModel, userModel;
     private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel, waitPanel, waitLblsPanel, userPanel, tblPanel;
     private JSplitPane splitPane;
-    private List<Timer> timers = new ArrayList<>();
-    private Timer timerScore = null;
-    private ColorsNFonts[] appColors = SwingUtils.getFilteredCnF(false);
     private JComponent[] componentsToColor;
     private GameInfo gameInfo;
-    private final CellRendererCenterAlign CENTER_RENDERER = new CellRendererCenterAlign();
 
     private Status gameStatus = Status.NOT_STARTED;
     private String username, fontName, topScores, recentScores;
     private int gameLevel = 1, gameScore, gameAccuracy, cnfIdx = 0, gameBtnFontSize,
             totalCorrectPairs, totalWrongPairs;
 
+    private final List<Timer> TIMERS = new ArrayList<>();
+    private final ColorsNFonts[] APP_COLORS = SwingUtils.getFilteredCnF(false);
+    private final CellRendererCenterAlign CENTER_RENDERER = new CellRendererCenterAlign();
     private final String TITLE_HEADING = "Controls";
     private final String GAME_SCORE_LOC = "./src/main/resources/scores.config";
     private final String GAME_CONFIGS_LOC = "./src/main/resources/game-configs";
@@ -405,12 +403,23 @@ public class MatchPair extends AppFrame {
                 gb = null;
                 gamePairMatched = 0;
                 totalWrongPairs++;
-                gameLevelFailed();
+                showWrongMatchScreen();
             }
         }
         if (lastButton == null && gb != null) {
             lastButton = gb;
         }
+    }
+
+    private void showWrongMatchScreen() {
+        hideGamePanel();
+        showWaitScreen();
+        lblWaitTime.setText("Wrong");
+        // this wont impact by cancelTimers bcoz gameTime not changed
+        gameWaitTime = 0;
+        Timer t = new Timer();
+        t.scheduleAtFixedRate(new WaitTimerTask(this), WRONG_PAIR_MSG_TIME, SEC_1);
+        TIMERS.add(t);
     }
 
     private void updateLevel() {
@@ -419,10 +428,6 @@ public class MatchPair extends AppFrame {
 
     private void updateScore() {
         lblScore.setText(UIName.LBL_SCORE.name + SPACE + gameScore);
-    }
-
-    private void gameLevelFailed() {
-        createButtons();
     }
 
     private void maximiseWin() {
@@ -561,7 +566,7 @@ public class MatchPair extends AppFrame {
         //if (isWindowActive())
         {
             cnfIdx = x;
-            ColorsNFonts c = appColors[cnfIdx];
+            ColorsNFonts c = APP_COLORS[cnfIdx];
             bg = c.getBk();
             fg = c.getFg(); // foreground not working with highlighter //c.getFg();
             hbg = c.getSelbk();
@@ -611,13 +616,19 @@ public class MatchPair extends AppFrame {
         changeGamePanel(false);
     }
 
+    private void hideAllGamePanel() {
+        hideGamePanel();
+        waitPanel.setVisible(false);
+    }
+
     private void startNewGame() {
         resetGame();
-        showWaitScreen();
+        showWaitScreenAndStart();
     }
 
     public void updateWaitTime() {
         if (gameWaitTime == 0) {
+            cancelTimers();
             showGameScreen();
         } else {
             lblWaitTime.setText(gameWaitTime + "");
@@ -625,7 +636,15 @@ public class MatchPair extends AppFrame {
         }
     }
 
+    private void showWaitScreenAndStart() {
+        showWaitScreen();
+        Timer t = new Timer();
+        t.scheduleAtFixedRate(new WaitTimerTask(this), 0, SEC_1);
+        TIMERS.add(t);
+    }
+
     private void showWaitScreen() {
+        buttonsPanel.removeAll();
         SwingUtils.changeFont(lblWaitTime, gameBtnFontSize);
         waitPanel.setBorder(SwingUtils.createLineBorder(hbg, 10));
         Arrays.stream(waitLblsPanel.getComponents()).forEach(c ->
@@ -636,13 +655,9 @@ public class MatchPair extends AppFrame {
         buttonsPanel.add(waitPanel, BorderLayout.CENTER);
         //buttonsPanel.setBackground(bg);
         SwingUtils.updateUIFor(buttonsPanel);
-        Timer t = new Timer();
-        t.scheduleAtFixedRate(new WaitTimerTask(this), 0, SEC_1);
-        timers.add(t);
     }
 
     private void showGameScreen() {
-        cancelTimers();
         waitPanel.setVisible(false);
         buttonsPanel.remove(waitPanel);
         SwingUtils.updateUIFor(buttonsPanel);
@@ -650,7 +665,7 @@ public class MatchPair extends AppFrame {
         showGamePanel();
         Timer t = new Timer();
         t.scheduleAtFixedRate(new GameTimerTask(this), 0, SEC_1);
-        timers.add(t);
+        TIMERS.add(t);
     }
 
     private void resetGame() {
@@ -658,7 +673,7 @@ public class MatchPair extends AppFrame {
         gameAccuracy = 0;
         totalWrongPairs = 0;
         totalCorrectPairs = 0;
-        gameWaitTime = GAME_START_TIME_SEC;
+        gameWaitTime = GAME_WAIT_TIME_SEC;
         gameTime = GAME_TIME_SEC;
         gameStatus = Status.START;
         gameScore = 0;
@@ -671,8 +686,8 @@ public class MatchPair extends AppFrame {
         gameInfo = getGameInfoFor(gameLevel);
         int rows = gameInfo.getRows();
         int cols = gameInfo.getCols();
-        BoxLayout boxlayout = new BoxLayout(buttonsPanel, BoxLayout.Y_AXIS);
-        buttonsPanel.setLayout(boxlayout);
+        //BoxLayout boxlayout = new BoxLayout(buttonsPanel, BoxLayout.Y_AXIS);
+        //buttonsPanel.setLayout(boxlayout);
         if (btnsPanel != null) {
             buttonsPanel.remove(btnsPanel);
             btnsPanel.removeAll();
@@ -681,7 +696,7 @@ public class MatchPair extends AppFrame {
         btnsPanel = new AppPanel(new GridLayout(rows, cols));
         //btnsPanel.setBackground(bg);
 
-        int gap = 50;
+        int gap = 150;
         btnsPanel.setBorder(new EmptyBorder(new Insets(gap, gap, gap, gap)));
         // randomize buttons
         List<GameButton> gameBtns = prepareGameButtons(gameInfo);
@@ -709,7 +724,7 @@ public class MatchPair extends AppFrame {
         return gi;
     }
 
-    private void endGame() {
+    private void gameCompleted() {
         gameAccuracy = (totalCorrectPairs * 100) / (totalCorrectPairs + totalWrongPairs);
         logger.info("Game end as username [" + username +
                 "], gameScore [" + gameScore +
@@ -729,6 +744,7 @@ public class MatchPair extends AppFrame {
 
     private void stopGame() {
         gameStatus = Status.STOP;
+        btnPause.setText(UIName.BTN_PAUSE.name);
         enableControls();
         cancelTimers();
         gameLevel = 1;
@@ -737,13 +753,13 @@ public class MatchPair extends AppFrame {
         updateScore();
         updateLevel();
         updateGameTime();
-        hideGamePanel();
+        hideAllGamePanel();
     }
 
     public void updateGameTime() {
         if (gameTime == 0) {
             gameStatus = Status.STOP;
-            endGame();
+            gameCompleted();
             lblTime.setForeground(fg);
         }
         if (gameTime <= ALARM_TIME_SEC && gameTime > 0) {
@@ -753,13 +769,10 @@ public class MatchPair extends AppFrame {
     }
 
     public boolean isGameRunning() {
-        if (isGamePaused()) {
-            performPauseAction();
-        }
         return isGameStart() || isGamePaused();
     }
 
-    private void performPauseAction() {
+    public void performPauseAction() {
         btnPause.setForeground(btnPause.getForeground() == fg ? Color.red : fg);
     }
 
@@ -820,14 +833,14 @@ public class MatchPair extends AppFrame {
     }
 
     private void startGame() {
-        if (isGameStart()) {
-            btnStart.setText(UIName.BTN_START.name);
-            stopGame();
-            enableControls();
-        } else {
+        if (!isGameRunning()) {
             btnStart.setText("Stop");
             startNewGame();
             disableControls();
+        } else {
+            btnStart.setText(UIName.BTN_START.name);
+            stopGame();
+            enableControls();
         }
     }
 
@@ -859,9 +872,8 @@ public class MatchPair extends AppFrame {
 
     private void saveScores() {
         Properties prop = new Properties();
-        gameScores.values().forEach(gs -> {
-            prop.setProperty(gs.getUsername() + PROP_SCORES_SUFFIX, prepareScoreCsv(gs.getRecentScores()));
-        });
+        gameScores.values().forEach(gs ->
+                prop.setProperty(gs.getUsername() + PROP_SCORES_SUFFIX, prepareScoreCsv(gs.getRecentScores())));
         Utils.saveProperties(prop, GAME_SCORE_LOC, logger);
     }
 
@@ -880,7 +892,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void cancelTimers() {
-        timers.forEach(Timer::cancel);
+        TIMERS.forEach(Timer::cancel);
     }
 
     private void setControlsToEnable() {
