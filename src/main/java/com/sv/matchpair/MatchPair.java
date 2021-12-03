@@ -369,6 +369,8 @@ public class MatchPair extends AppFrame {
                 list.add(new GameButton(chList.get(t.getAndIncrement()) + Constants.EMPTY,
                         gi.getColors()[k.intValue()], this));
             }
+            //todo store pairs, chk why some time game reloads and try to show next pair
+            // todo position of button
             k.getAndIncrement();
         });
 
