@@ -591,7 +591,7 @@ public class MatchPair extends AppFrame {
         AppTable[] tbls = {tblUsers, tblTopScore, tblRecentScore};
         Arrays.stream(tbls).forEach(t -> t.setRowHeight(appFontSize + 4));
 
-        buttonsPanel.setBackground(bg);
+        //buttonsPanel.setBackground(bg);
 
         // will set colors for pwd screens
         setAppColors(fg, bg, hfg, hbg);
@@ -629,12 +629,12 @@ public class MatchPair extends AppFrame {
         SwingUtils.changeFont(lblWaitTime, gameBtnFontSize);
         waitPanel.setBorder(SwingUtils.createLineBorder(hbg, 10));
         Arrays.stream(waitLblsPanel.getComponents()).forEach(c ->
-                SwingUtils.setComponentColor((JComponent) c, bg, fg));
-        waitPanel.setBackground(bg);
+                SwingUtils.setComponentColor((JComponent) c, null, fg));
+        //waitPanel.setBackground(bg);
         waitPanel.setVisible(true);
         buttonsPanel.setLayout(new BorderLayout());
         buttonsPanel.add(waitPanel, BorderLayout.CENTER);
-        buttonsPanel.setBackground(bg);
+        //buttonsPanel.setBackground(bg);
         SwingUtils.updateUIFor(buttonsPanel);
         Timer t = new Timer();
         t.scheduleAtFixedRate(new WaitTimerTask(this), 0, SEC_1);
@@ -679,7 +679,7 @@ public class MatchPair extends AppFrame {
             btnsPanel.repaint();
         }
         btnsPanel = new AppPanel(new GridLayout(rows, cols));
-        btnsPanel.setBackground(bg);
+        //btnsPanel.setBackground(bg);
 
         int gap = 50;
         btnsPanel.setBorder(new EmptyBorder(new Insets(gap, gap, gap, gap)));
