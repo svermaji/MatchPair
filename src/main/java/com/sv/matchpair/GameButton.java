@@ -56,10 +56,11 @@ public final class GameButton extends AppButton {
 
     @Override
     public String toString() {
-        return "GameButton{" +
+        return "{" +
                 "text=" + getText() +
-                ", rowNum=" + rowNum +
-                ", colNum=" + colNum +
+                ", row:col=" + rowNum +
+                ":" + colNum +
                 '}';
     }
+
 }

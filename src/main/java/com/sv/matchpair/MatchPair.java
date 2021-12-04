@@ -366,7 +366,6 @@ public class MatchPair extends AppFrame {
                 x += seqE;
             }
         }
-        logger.info("Game pairs chars are " + gamePairs);
         AtomicInteger k = new AtomicInteger();
         AtomicInteger t = new AtomicInteger();
         Color[] colors = gi.getColorsRandomly();
@@ -383,7 +382,7 @@ public class MatchPair extends AppFrame {
         return list;
     }
 
-    public void checkGameButton(GameButton gb) {
+    public synchronized void checkGameButton(GameButton gb) {
         if (lastButton != null && !lastButton.isClicked()) {
             lastButton = null;
             gb = null;
@@ -399,6 +398,8 @@ public class MatchPair extends AppFrame {
             updateScore();
             totalCorrectPairs++;
             if (gamePairMatched == PAIRS_COUNT) {
+                logger.info("Matches done for user [" + username + "], game level [" + gameLevel + "], " +
+                        "game score [" + gameScore + "]");
                 gameLevel++;
                 updateLevel();
                 gamePairMatched = 0;
@@ -407,6 +408,9 @@ public class MatchPair extends AppFrame {
         } else {
             if (lastButton != null && lastButton.isClicked() && gb.isClicked()
                     && !(lastButton.getText().equals(gb.getText()))) {
+                logger.warn("Wrong match by user [" + username + "], game level [" + gameLevel + "], " +
+                        "game score [" + gameScore + "], " +
+                        "button 1 [" + lastButton + "] and button 2 [" + gb + "]");
                 lastButton = null;
                 gb = null;
                 gamePairMatched = 0;
@@ -684,11 +688,10 @@ public class MatchPair extends AppFrame {
         updateScore();
         updateLevel();
         updateGameTime();
-        gamePairs.clear();
-        logger.info("Old game pairs cleared. " + gamePairs);
     }
 
     private void createButtons() {
+        gamePairs.clear();
         gameInfo = getGameInfoFor(gameLevel);
         int rows = gameInfo.getRows();
         int cols = gameInfo.getCols();
@@ -706,7 +709,6 @@ public class MatchPair extends AppFrame {
         List<GameButton> gameBtnsRandomize = new ArrayList<>(gameBtns);
         long time = Utils.getNowMillis();
         Collections.shuffle(gameBtnsRandomize);
-        logger.info("Time taken to randomization " + Utils.getTimeDiffSecMilliStr(time));
         int r = 0, c = 0;
         for (GameButton b : gameBtnsRandomize) {
             Character ch = b.getText().charAt(0);
@@ -721,7 +723,7 @@ public class MatchPair extends AppFrame {
                 r++;
             }
         }
-        logger.info("Game Pairs are " + gamePairs);
+        logger.info("Game pairs are [" + gamePairs.size() + "]. Details: " + gamePairs);
         changeGameBtnFont();
         buttonsPanel.add(btnsPanel);
         SwingUtils.updateUIFor(buttonsPanel);
