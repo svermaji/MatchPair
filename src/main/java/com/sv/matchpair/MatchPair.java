@@ -12,6 +12,7 @@ import com.sv.swingui.KeyActionDetails;
 import com.sv.swingui.SwingUtils;
 import com.sv.swingui.component.*;
 import com.sv.swingui.component.table.AppTable;
+import com.sv.swingui.component.table.AppTableHeaderToolTip;
 import com.sv.swingui.component.table.CellRendererCenterAlign;
 
 import javax.swing.*;
@@ -116,6 +117,7 @@ public class MatchPair extends AppFrame {
         logger.setSimpleClassName(true);
 
         super.setLogger(logger);
+        CENTER_RENDERER.setShowSameTipOnRow(false);
 
         appFontSize = Utils.validateInt(configs.getIntConfig(Configs.AppFontSize.name()),
                 DEFAULT_APPFONTSIZE, MIN_APPFONTSIZE, MAX_APPFONTSIZE);
@@ -274,6 +276,16 @@ public class MatchPair extends AppFrame {
         tblTopScore = new AppTable(topScoreModel);
         tblRecentScore = new AppTable(recentScoreModel);
         tblUsers = new AppTable(userModel);
+
+        tblTopScore.setTableHeader(new AppTableHeaderToolTip(tblTopScore.getColumnModel(),
+                topScoreCols
+        ));
+        tblRecentScore.setTableHeader(new AppTableHeaderToolTip(tblRecentScore.getColumnModel(),
+                recentScoreCols
+        ));
+        tblUsers.setTableHeader(new AppTableHeaderToolTip(tblUsers.getColumnModel(),
+                userCols
+        ));
 
         setTable(tblTopScore, topScoreModel);
         setTable(tblRecentScore, recentScoreModel);
@@ -589,6 +601,9 @@ public class MatchPair extends AppFrame {
     }
 
     private void changeAppColor() {
+        // will set colors for pwd screens
+        setAppColors(fg, bg, hfg, hbg);
+
         createBorders();
         titledBorder = SwingUtils.createTitledBorder(TITLE_HEADING, fg);
         TitledBorder[] toTitleColor = {titledBorder};
@@ -607,9 +622,8 @@ public class MatchPair extends AppFrame {
 
         AppTable[] tbls = {tblUsers, tblTopScore, tblRecentScore};
         Arrays.stream(tbls).forEach(t -> t.setRowHeight(appFontSize + 4));
-
-        // will set colors for pwd screens
-        setAppColors(fg, bg, hfg, hbg);
+        Arrays.stream(tbls).forEach(t ->
+                SwingUtils.applyTooltipColorNFontAllChild(t, fg, bg, SwingUtils.getNewFontSize(t.getFont(), appFontSize)));
     }
 
     private void showGamePanel() {
