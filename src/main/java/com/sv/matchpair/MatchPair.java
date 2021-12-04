@@ -705,6 +705,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void createButtons() {
+        gamePairMatched = 0;
         gamePairs.clear();
         gameInfo = getGameInfoFor(gameLevel);
         int rows = gameInfo.getRows();
