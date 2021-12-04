@@ -6,6 +6,7 @@ import com.sv.core.config.DefaultConfigs;
 import com.sv.core.logger.MyLogger;
 import com.sv.matchpair.task.AppFontChangerTask;
 import com.sv.matchpair.task.GameTimerTask;
+import com.sv.matchpair.task.GameCompletedTask;
 import com.sv.matchpair.task.WaitTimerTask;
 import com.sv.swingui.KeyActionDetails;
 import com.sv.swingui.SwingUtils;
@@ -684,6 +685,7 @@ public class MatchPair extends AppFrame {
         updateLevel();
         updateGameTime();
         gamePairs.clear();
+        logger.info("Old game pairs cleared. " + gamePairs);
     }
 
     private void createButtons() {
@@ -733,7 +735,10 @@ public class MatchPair extends AppFrame {
     }
 
     private void gameCompleted() {
-        gameAccuracy = (totalCorrectPairs * 100) / (totalCorrectPairs + totalWrongPairs);
+        gameAccuracy = 0;
+        if (totalCorrectPairs > 0 || totalWrongPairs > 0) {
+            gameAccuracy = (totalCorrectPairs * 100) / (totalCorrectPairs + totalWrongPairs);
+        }
         logger.info("Game end as username [" + username +
                 "], gameScore [" + gameScore +
                 "], gameAccuracy [" + gameAccuracy +
@@ -743,10 +748,28 @@ public class MatchPair extends AppFrame {
                 "]"
         );
         btnStart.setText(UIName.BTN_START.name);
-        hideGamePanel();
         enableControls();
-        gameScores.get(username).addScore(new GameScore(gameScore, Utils.getDateDDMMYYYY(), gameAccuracy, gameLevel));
+        gameScores.get(username).addScore(new GameScore(gameScore, Utils.getFormattedDate(), gameAccuracy, gameLevel));
         loadTableData();
+
+        for (Map.Entry<Character, List<GameButton>> entry : gamePairs.entrySet()) {
+            Character k = entry.getKey();
+            List<GameButton> v = entry.getValue();
+            GameButton b1 = v.get(0), b2 = v.get(1);
+            if (b1.isVisible() && b2.isVisible()) {
+                b1.setBackground(hbg);
+                b2.setBackground(hbg);
+                break;
+            }
+        }
+
+        Timer t = new Timer();
+        t.schedule(new GameCompletedTask(this), SEC_1 * 2);
+        TIMERS.add(t);
+    }
+
+    public void gameCompletedActions() {
+        hideGamePanel();
         cancelTimers();
     }
 
