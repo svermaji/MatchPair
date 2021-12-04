@@ -363,11 +363,12 @@ public class MatchPair extends AppFrame {
         }
         AtomicInteger k = new AtomicInteger();
         AtomicInteger t = new AtomicInteger();
+        Color[] colors = gi.getColorsRandomly();
         // first 3 element in sequence must be > 2
         Arrays.stream(seq).forEach(i -> {
             for (int j = 0; j < i; j++) {
                 list.add(new GameButton(chList.get(t.getAndIncrement()) + Constants.EMPTY,
-                        gi.getColors()[k.intValue()], this));
+                        colors[k.intValue()], this));
             }
             //todo store pairs, chk why some time game reloads and try to show next pair
             // todo position of button

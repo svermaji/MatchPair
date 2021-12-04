@@ -1,7 +1,9 @@
 package com.sv.matchpair;
 
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Random;
 
 public final class GameInfo {
@@ -39,21 +41,11 @@ public final class GameInfo {
     }
 
     public Color[] getColorsRandomly() {
-        Random rand = new Random();
-        int len = colors.length;
-        Color[] cr = new Color[len];
-        for (int i = 0; i < len; i++) {
-            cr[i] = colors[rand.nextInt(len)];
-        }
-        return cr;
-        /*for (int i = 0; i < len; i++) {
-            Color c = colors[rand.nextInt(len)];
-            if (!cr.contains(c)) {
-                cr.add(c);
-            }
-        }
-        return cr.toArray(new Color[0]);*/
-
+        java.util.List<Color> list = Arrays.asList(getColors());
+        System.out.println(list);
+        Collections.shuffle(list);
+        System.out.println(list);
+        return list.toArray(list.toArray(new Color[0]));
     }
 
     public void setColors(Color[] colors) {
