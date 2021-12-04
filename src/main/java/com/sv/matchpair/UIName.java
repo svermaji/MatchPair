@@ -13,7 +13,8 @@ public enum UIName {
     BTN_PAUSE("Pause", 'p', "Pause/Resume the game"),
     LBL_SCORE("Score", 'l', "Score of the game"),
     LBL_TIME("Time", 'm', "Time remaining of the game"),
-    MENU("Settings", 'g', "Different system settings");
+    MENU("Settings", 'g', "Different system settings"),
+    MI_HELP("Help", 'h', "Help about game");
 
     String name, tip;
     char mnemonic;

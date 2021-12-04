@@ -21,6 +21,8 @@ import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Timer;
 import java.util.*;
@@ -61,12 +63,15 @@ public class MatchPair extends AppFrame {
     private TitledBorder titledBorder;
     private JMenuBar menuBar;
     private AppMenu menu;
+    private JTextPane tpHelp;
     private AppButton btnStart, btnUser, btnPause, btnExit;
     private AppTextField txtUser;
     private AppLabel lblTime, lblWaitTime, lblScore, lblLevel;
     private AppTable tblTopScore, tblRecentScore, tblUsers;
     private DefaultTableModel topScoreModel, recentScoreModel, userModel;
-    private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel, waitPanel, waitLblsPanel, userPanel, tblPanel;
+    private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel,
+            waitPanel, waitLblsPanel, userPanel, tblPanel, helpPanel;
+    private JScrollPane jspHelp;
     private JSplitPane splitPane;
     private JComponent[] componentsToColor;
     private GameInfo gameInfo;
@@ -229,6 +234,12 @@ public class MatchPair extends AppFrame {
         menu.add(SwingUtils.getColorsMenu(true, true,
                 true, true, false, this, logger));
         menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
+        menu.addSeparator();
+        uin = UIName.MI_HELP;
+        AppMenuItem miHelp = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
+        menu.add(miHelp);
+        setupHelp();
+        miHelp.addActionListener(e -> showHelp());
         menuBar.add(menu);
 
         SwingUtils.updateUIFor(menuBar);
@@ -243,6 +254,29 @@ public class MatchPair extends AppFrame {
         addBindings();
 
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
+    }
+
+    private void setupHelp() {
+        File file = new File("./help.html");
+        tpHelp = new JTextPane();
+        tpHelp.setEditable(false);
+        tpHelp.setContentType("text/html");
+        try {
+            tpHelp.setPage(file.toURI().toURL());
+        } catch (IOException e) {
+            logger.error("Unable to display help");
+        }
+        jspHelp = new JScrollPane(tpHelp);
+        //helpPanel.add(jspHelp);
+        //buttonsPanel.add(helpPanel, BorderLayout.CENTER);
+        buttonsPanel.add(jspHelp, BorderLayout.CENTER);
+        buttonsPanel.setBorder(SwingUtils.createLineBorder(Color.magenta, 10));
+    }
+
+    private void showHelp() {
+        jspHelp.setVisible(jspHelp.isVisible() ? false : true);
+        //helpPanel.setVisible(true);
+        //SwingUtils.updateUIFor(buttonsPanel);
     }
 
     private void prepareWaitScreen() {
@@ -292,6 +326,7 @@ public class MatchPair extends AppFrame {
         setTable(tblUsers, userModel);
         loadTableData();
 
+        helpPanel = new AppPanel();
         tblPanel = new AppPanel(new GridLayout(3, 1));
         tblPanel.add(new JScrollPane(tblTopScore));
         tblPanel.add(new JScrollPane(tblRecentScore));
@@ -668,7 +703,9 @@ public class MatchPair extends AppFrame {
     }
 
     private void showWaitScreen() {
-        buttonsPanel.removeAll();
+        if (btnsPanel!=null) {
+            buttonsPanel.remove(btnsPanel);
+        }
         SwingUtils.changeFont(lblWaitTime, gameBtnFontSize);
         waitPanel.setBorder(SwingUtils.createLineBorder(hbg, 10));
         Arrays.stream(waitLblsPanel.getComponents()).forEach(c ->
