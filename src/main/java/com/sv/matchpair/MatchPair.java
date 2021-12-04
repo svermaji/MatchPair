@@ -54,6 +54,7 @@ public class MatchPair extends AppFrame {
     private DefaultConfigs configs;
     private Map<String, GameInfo> gameInfos;
     private Map<String, GameScores> gameScores;
+    private Map<Character, List<GameButton>> gamePairs;
 
     private TitledBorder titledBorder;
     private JMenuBar menuBar;
@@ -106,6 +107,7 @@ public class MatchPair extends AppFrame {
         configs = new DefaultConfigs(logger, Utils.getConfigsAsArr(Configs.class));
         gameInfos = new ConcurrentHashMap<>();
         gameScores = new ConcurrentHashMap<>();
+        gamePairs = new ConcurrentHashMap<>();
         loadGameSequences();
         loadConfigValues();
         loadGameConfigs();
@@ -334,8 +336,8 @@ public class MatchPair extends AppFrame {
     public List<GameButton> prepareGameButtons(GameInfo gi) {
         Integer[] seq = AppUtils.getRandomGameSeq(gi, gameSequences);
         logger.info("Sequence selected as " + Arrays.toString(seq));
-        int total = gi.getRows() * gi.getCols();
 
+        int total = gi.getRows() * gi.getCols();
         List<GameButton> list = new ArrayList<>(total);
         List<Character> chList = new ArrayList<>(total);
         int elem = total - PAIRS_COUNT;
@@ -354,13 +356,16 @@ public class MatchPair extends AppFrame {
                 i--;
             } else {
                 chList.add(x, chList.get(x));
+                gamePairs.put(chList.get(x), new ArrayList<>());
                 if (seqE > GAME_SEQ_LIMIT_MAX && i < PAIRS_COUNT - 1) {
                     chList.add(x + 2, chList.get(x + 2));
                     i++;
+                    gamePairs.put(chList.get(x + 2), new ArrayList<>());
                 }
                 x += seqE;
             }
         }
+        logger.info("Game pairs chars are " + gamePairs);
         AtomicInteger k = new AtomicInteger();
         AtomicInteger t = new AtomicInteger();
         Color[] colors = gi.getColorsRandomly();
@@ -370,8 +375,7 @@ public class MatchPair extends AppFrame {
                 list.add(new GameButton(chList.get(t.getAndIncrement()) + Constants.EMPTY,
                         colors[k.intValue()], this));
             }
-            //todo store pairs, chk why some time game reloads and try to show next pair
-            // todo position of button
+            //todo chk why some time game reloads and try to show next pair
             k.getAndIncrement();
         });
 
@@ -599,8 +603,6 @@ public class MatchPair extends AppFrame {
         AppTable[] tbls = {tblUsers, tblTopScore, tblRecentScore};
         Arrays.stream(tbls).forEach(t -> t.setRowHeight(appFontSize + 4));
 
-        //buttonsPanel.setBackground(bg);
-
         // will set colors for pwd screens
         setAppColors(fg, bg, hfg, hbg);
     }
@@ -652,11 +654,9 @@ public class MatchPair extends AppFrame {
         waitPanel.setBorder(SwingUtils.createLineBorder(hbg, 10));
         Arrays.stream(waitLblsPanel.getComponents()).forEach(c ->
                 SwingUtils.setComponentColor((JComponent) c, null, fg));
-        //waitPanel.setBackground(bg);
         waitPanel.setVisible(true);
         buttonsPanel.setLayout(new BorderLayout());
         buttonsPanel.add(waitPanel, BorderLayout.CENTER);
-        //buttonsPanel.setBackground(bg);
         SwingUtils.updateUIFor(buttonsPanel);
     }
 
@@ -683,38 +683,43 @@ public class MatchPair extends AppFrame {
         updateScore();
         updateLevel();
         updateGameTime();
+        gamePairs.clear();
     }
 
     private void createButtons() {
         gameInfo = getGameInfoFor(gameLevel);
         int rows = gameInfo.getRows();
         int cols = gameInfo.getCols();
-        //BoxLayout boxlayout = new BoxLayout(buttonsPanel, BoxLayout.Y_AXIS);
-        //buttonsPanel.setLayout(boxlayout);
         if (btnsPanel != null) {
             buttonsPanel.remove(btnsPanel);
             btnsPanel.removeAll();
             btnsPanel.repaint();
         }
         btnsPanel = new AppPanel(new GridLayout(rows, cols));
-        //btnsPanel.setBackground(bg);
 
         int gap = 150;
         btnsPanel.setBorder(new EmptyBorder(new Insets(gap, gap, gap, gap)));
         // randomize buttons
         List<GameButton> gameBtns = prepareGameButtons(gameInfo);
-        List<GameButton> gameBtnsRandomize = new ArrayList<>();
+        List<GameButton> gameBtnsRandomize = new ArrayList<>(gameBtns);
         long time = Utils.getNowMillis();
-        Random rand = new Random();
-        int sz = gameBtns.size();
-        while (gameBtnsRandomize.size() < sz) {
-            GameButton gb = gameBtns.get(rand.nextInt(sz));
-            if (!gameBtnsRandomize.contains(gb)) {
-                gameBtnsRandomize.add(gb);
+        Collections.shuffle(gameBtnsRandomize);
+        logger.info("Time taken to randomization " + Utils.getTimeDiffSecMilliStr(time));
+        int r = 0, c = 0;
+        for (GameButton b : gameBtnsRandomize) {
+            Character ch = b.getText().charAt(0);
+            if (gamePairs.containsKey(ch)) {
+                b.setGamePosition(r, c);
+                gamePairs.get(ch).add(b);
+            }
+            btnsPanel.add(b);
+            c++;
+            if (c == cols) {
+                c = 0;
+                r++;
             }
         }
-        logger.info("Time taken to randomization " + Utils.getTimeDiffSecMilliStr(time));
-        gameBtnsRandomize.forEach(btnsPanel::add);
+        logger.info("Game Pairs are " + gamePairs);
         changeGameBtnFont();
         buttonsPanel.add(btnsPanel);
         SwingUtils.updateUIFor(buttonsPanel);

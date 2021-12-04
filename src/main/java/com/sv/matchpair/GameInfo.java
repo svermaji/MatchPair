@@ -42,9 +42,7 @@ public final class GameInfo {
 
     public Color[] getColorsRandomly() {
         java.util.List<Color> list = Arrays.asList(getColors());
-        System.out.println(list);
         Collections.shuffle(list);
-        System.out.println(list);
         return list.toArray(list.toArray(new Color[0]));
     }
 

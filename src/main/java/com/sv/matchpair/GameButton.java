@@ -10,6 +10,8 @@ import java.awt.event.MouseEvent;
 
 public final class GameButton extends AppButton {
 
+    private int rowNum = -1, colNum = -1;
+
     public GameButton(String text, Color fg, MatchPair matchPair) {
         super(text);
         setForeground(fg);
@@ -28,14 +30,36 @@ public final class GameButton extends AppButton {
                                 getBackground().equals(AppConstants.GAME_BTN_COLOR) ?
                                         AppConstants.GAME_BTN_CLICK_COLOR : AppConstants.GAME_BTN_COLOR
                         );
-                        matchPair.checkGameButton (thisObj);
+                        matchPair.checkGameButton(thisObj);
                     }
                 }
             }
         });
     }
 
-    public boolean isClicked () {
+    public boolean isClicked() {
         return getBackground().equals(AppConstants.GAME_BTN_CLICK_COLOR);
+    }
+
+    public void setGamePosition(int rowNum, int colNum) {
+        this.rowNum = rowNum;
+        this.colNum = colNum;
+    }
+
+    public int getRowNum() {
+        return rowNum;
+    }
+
+    public int getColNum() {
+        return colNum;
+    }
+
+    @Override
+    public String toString() {
+        return "GameButton{" +
+                "text=" + getText() +
+                ", rowNum=" + rowNum +
+                ", colNum=" + colNum +
+                '}';
     }
 }
