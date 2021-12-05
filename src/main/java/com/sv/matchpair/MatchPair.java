@@ -149,7 +149,7 @@ public class MatchPair extends AppFrame {
         btnUser = new AppButton(uin.name + Constants.SPACE + username, uin.mnemonic, uin.tip);
         btnUser.addActionListener(e -> changeUsername());
         uin = UIName.LBL_USER;
-        txtUser = new AppTextField(username, 10);
+        txtUser = new AppTextField(username, 10, new String[]{});
         txtUser.setToolTipText(uin.tip);
         txtUser.addKeyListener(new KeyAdapter() {
 
@@ -252,6 +252,7 @@ public class MatchPair extends AppFrame {
         colorChange(cnfIdx);
         setControlsToEnable();
         addBindings();
+        updateUNAutoComplete();
 
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
     }
@@ -361,12 +362,14 @@ public class MatchPair extends AppFrame {
     private void populateUsersTopScore(DefaultTableModel model) {
         // empty
         model.setRowCount(0);
-        Map<Integer, GameScores> topScores = new ConcurrentHashMap<>();
+        Map<String, GameScores> topScores = new ConcurrentHashMap<>();
         for (GameScores v : gameScores.values()) {
-            topScores.put(v.getTopScore(), v);
+            topScores.put(v.getUsername(), v);
         }
-        Map<Integer, GameScores> sorted = topScores.entrySet().stream()
-                .sorted(Collections.reverseOrder(Map.Entry.comparingByKey()))
+
+        Map<String, GameScores> sorted = topScores.entrySet().stream()
+                .sorted(Collections.reverseOrder(Map.Entry.comparingByValue(
+                        Comparator.comparingInt(GameScores::getTopScore))))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2, LinkedHashMap::new));
 
         sorted.forEach((k, v) -> {
@@ -661,6 +664,14 @@ public class MatchPair extends AppFrame {
                 SwingUtils.applyTooltipColorNFontAllChild(t, fg, bg, SwingUtils.getNewFontSize(t.getFont(), appFontSize)));
     }
 
+    private String[] getUsernames() {
+        return gameScores.keySet().toArray(new String[0]);
+    }
+
+    private void updateUNAutoComplete() {
+        txtUser.setAutoCompleteArr(getUsernames());
+    }
+
     private void showGamePanel() {
         changeGamePanel(true);
     }
@@ -888,6 +899,7 @@ public class MatchPair extends AppFrame {
             // just to hide controls
             doNotSaveUsername();
             storeAndLoad();
+            updateUNAutoComplete();
         } else {
             getToolkit().beep();
             if (username.length() > MAX_NAME) {
