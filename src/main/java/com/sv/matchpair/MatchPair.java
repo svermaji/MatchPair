@@ -201,7 +201,8 @@ public class MatchPair extends AppFrame {
         topPanel.setBorder(SwingUtils.createLineBorder(Color.BLUE));
 
         centerPanel = new AppPanel(new BorderLayout());
-        buttonsPanel = new AppPanel();
+        buttonsPanel = new AppPanel(new BorderLayout());
+        setupHelp();
         setAllTables();
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tblPanel, buttonsPanel);
         splitPane.setOneTouchExpandable(true);
@@ -238,7 +239,6 @@ public class MatchPair extends AppFrame {
         uin = UIName.MI_HELP;
         AppMenuItem miHelp = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
         menu.add(miHelp);
-        setupHelp();
         miHelp.addActionListener(e -> showHelp());
         menuBar.add(menu);
 
@@ -267,16 +267,15 @@ public class MatchPair extends AppFrame {
             logger.error("Unable to display help");
         }
         jspHelp = new JScrollPane(tpHelp);
-        //helpPanel.add(jspHelp);
-        //buttonsPanel.add(helpPanel, BorderLayout.CENTER);
         buttonsPanel.add(jspHelp, BorderLayout.CENTER);
-        buttonsPanel.setBorder(SwingUtils.createLineBorder(Color.magenta, 10));
     }
 
     private void showHelp() {
-        jspHelp.setVisible(jspHelp.isVisible() ? false : true);
-        //helpPanel.setVisible(true);
-        //SwingUtils.updateUIFor(buttonsPanel);
+        jspHelp.setVisible(true);
+    }
+
+    private void hideHelp() {
+        jspHelp.setVisible(false);
     }
 
     private void prepareWaitScreen() {
@@ -655,6 +654,7 @@ public class MatchPair extends AppFrame {
         Arrays.stream(componentsToColor).forEach(c ->
                 SwingUtils.applyTooltipColorNFont(c, bg, fg, SwingUtils.getNewFont(c.getFont(), fontName)));
 
+        buttonsPanel.setBorder(SwingUtils.createLineBorder(hbg, 10));
         AppTable[] tbls = {tblUsers, tblTopScore, tblRecentScore};
         Arrays.stream(tbls).forEach(t -> t.setRowHeight(appFontSize + 4));
         Arrays.stream(tbls).forEach(t ->
@@ -703,11 +703,10 @@ public class MatchPair extends AppFrame {
     }
 
     private void showWaitScreen() {
-        if (btnsPanel!=null) {
+        if (btnsPanel != null) {
             buttonsPanel.remove(btnsPanel);
         }
         SwingUtils.changeFont(lblWaitTime, gameBtnFontSize);
-        waitPanel.setBorder(SwingUtils.createLineBorder(hbg, 10));
         Arrays.stream(waitLblsPanel.getComponents()).forEach(c ->
                 SwingUtils.setComponentColor((JComponent) c, null, fg));
         waitPanel.setVisible(true);
@@ -719,7 +718,6 @@ public class MatchPair extends AppFrame {
     private void showGameScreen() {
         waitPanel.setVisible(false);
         buttonsPanel.remove(waitPanel);
-        SwingUtils.updateUIFor(buttonsPanel);
         createButtons();
         showGamePanel();
         Timer t = new Timer();
@@ -728,6 +726,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void resetGame() {
+        hideHelp();
         gameLevel = 1;
         gameAccuracy = 0;
         totalWrongPairs = 0;
@@ -777,7 +776,7 @@ public class MatchPair extends AppFrame {
         }
         logger.info("Game pairs are [" + gamePairs.size() + "]. Details: " + gamePairs);
         changeGameBtnFont();
-        buttonsPanel.add(btnsPanel);
+        buttonsPanel.add(btnsPanel, BorderLayout.CENTER);
         SwingUtils.updateUIFor(buttonsPanel);
     }
 
