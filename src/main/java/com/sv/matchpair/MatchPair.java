@@ -28,6 +28,7 @@ import java.util.Timer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static com.sv.core.Constants.*;
 import static com.sv.matchpair.AppConstants.*;
@@ -311,15 +312,9 @@ public class MatchPair extends AppFrame {
         tblRecentScore = new AppTable(recentScoreModel);
         tblUsers = new AppTable(userModel);
 
-        tblTopScore.setTableHeader(new AppTableHeaderToolTip(tblTopScore.getColumnModel(),
-                topScoreCols
-        ));
-        tblRecentScore.setTableHeader(new AppTableHeaderToolTip(tblRecentScore.getColumnModel(),
-                recentScoreCols
-        ));
-        tblUsers.setTableHeader(new AppTableHeaderToolTip(tblUsers.getColumnModel(),
-                userCols
-        ));
+        tblTopScore.setTableHeader(new AppTableHeaderToolTip(tblTopScore.getColumnModel(), topScoreCols));
+        tblRecentScore.setTableHeader(new AppTableHeaderToolTip(tblRecentScore.getColumnModel(), recentScoreCols));
+        tblUsers.setTableHeader(new AppTableHeaderToolTip(tblUsers.getColumnModel(), userCols));
 
         setTable(tblTopScore, topScoreModel);
         setTable(tblRecentScore, recentScoreModel);
@@ -335,7 +330,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void loadTableData() {
-        GameScores gs = gameScores.get(username);
+        GameScores gs = gameScores.get(getUsernameForMap());
         if (gs != null) {
             populateScoreTbl(gs.getTopScores(), topScoreModel);
             populateScoreTbl(gs.getRecentScores(), recentScoreModel);
@@ -502,10 +497,10 @@ public class MatchPair extends AppFrame {
             if (k.endsWith(PROP_SCORES_SUFFIX)) {
                 String v = props.getProperty(k);
                 String user = getUserFromProp(k);
-                if (gameScores.containsKey(user)) {
+                if (gameScores.containsKey(getUsernameForMap(user))) {
                     logger.warn("Duplicate file found for user " + Utils.addBraces(user));
                 } else {
-                    gameScores.put(user, getGameScores(user, v));
+                    gameScores.put(getUsernameForMap(user), getGameScores(user, v));
                 }
             }
         });
@@ -665,7 +660,7 @@ public class MatchPair extends AppFrame {
     }
 
     private String[] getUsernames() {
-        return gameScores.keySet().toArray(new String[0]);
+        return gameScores.values().stream().map(GameScores::getUsername).toArray(String[]::new);
     }
 
     private void updateUNAutoComplete() {
@@ -813,7 +808,7 @@ public class MatchPair extends AppFrame {
         );
         btnStart.setText(UIName.BTN_START.name);
         enableControls();
-        gameScores.get(username).addScore(new GameScore(gameScore, Utils.getFormattedDate(), gameAccuracy, gameLevel));
+        gameScores.get(getUsernameForMap()).addScore(new GameScore(gameScore, Utils.getFormattedDate(), gameAccuracy, gameLevel));
         loadTableData();
 
         for (Map.Entry<Character, List<GameButton>> entry : gamePairs.entrySet()) {
@@ -830,6 +825,14 @@ public class MatchPair extends AppFrame {
         Timer t = new Timer();
         t.schedule(new GameCompletedTask(this), SEC_1 * 2);
         TIMERS.add(t);
+    }
+
+    private String getUsernameForMap(String u) {
+        return u.toLowerCase();
+    }
+
+    private String getUsernameForMap() {
+        return getUsernameForMap(username);
     }
 
     public void gameCompletedActions() {
@@ -895,6 +898,7 @@ public class MatchPair extends AppFrame {
     private void saveUsername() {
         username = txtUser.getText().trim();
         if (isValidName(username)) {
+            username = Utils.convertToTitleCase(username);
             btnUser.setText(UIName.BTN_USER.name + SPACE + username);
             // just to hide controls
             doNotSaveUsername();
@@ -911,8 +915,8 @@ public class MatchPair extends AppFrame {
     }
 
     private void storeAndLoad() {
-        if (!gameScores.containsKey(username)) {
-            gameScores.put(username, new GameScores(username, null));
+        if (!gameScores.containsKey(getUsernameForMap())) {
+            gameScores.put(getUsernameForMap(), new GameScores(username, null));
         }
         loadTableData();
     }
