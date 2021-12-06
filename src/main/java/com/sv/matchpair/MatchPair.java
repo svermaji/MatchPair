@@ -370,7 +370,7 @@ public class MatchPair extends AppFrame {
         sorted.forEach((k, v) -> {
             boolean hasData = v.getTopScores().size() > 0;
             model.addRow(new String[]{v.getUsername(),
-                            k + "",
+                            v.getTopScore() + "",
                             hasData ? v.getTopScores().get(0).getAccuracy() : "0",
                             hasData ? v.getTopScores().get(0).getLevel() : "0"
                     }
