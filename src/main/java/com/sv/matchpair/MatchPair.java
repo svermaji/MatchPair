@@ -427,43 +427,45 @@ public class MatchPair extends AppFrame {
     }
 
     public synchronized void checkGameButton(GameButton gb) {
-        if (lastButton != null && !lastButton.isClicked()) {
-            lastButton = null;
-            gb = null;
-        }
-        if (lastButton != null && lastButton.isClicked() && gb.isClicked()
-                && lastButton.getText().equals(gb.getText())) {
-            gb.setVisible(false);
-            lastButton.setVisible(false);
-            lastButton = null;
-            gb = null;
-            gamePairMatched++;
-            gameScore += gameInfo.getMatchScore();
-            updateScore();
-            totalCorrectPairs++;
-            if (gamePairMatched == PAIRS_COUNT) {
-                logger.info("Matches done for user [" + username + "], game level [" + gameLevel + "], " +
-                        "game score [" + gameScore + "]");
-                gameLevel++;
-                updateLevel();
-                gamePairMatched = 0;
-                createButtons();
-            }
-        } else {
-            if (lastButton != null && lastButton.isClicked() && gb.isClicked()
-                    && !(lastButton.getText().equals(gb.getText()))) {
-                logger.warn("Wrong match by user [" + username + "], game level [" + gameLevel + "], " +
-                        "game score [" + gameScore + "], " +
-                        "button 1 [" + lastButton + "] and button 2 [" + gb + "]");
+        if (isGameRunning()) {
+            if (lastButton != null && !lastButton.isClicked()) {
                 lastButton = null;
                 gb = null;
-                gamePairMatched = 0;
-                totalWrongPairs++;
-                showWrongMatchScreen();
             }
-        }
-        if (lastButton == null && gb != null) {
-            lastButton = gb;
+            if (lastButton != null && lastButton.isClicked() && gb.isClicked()
+                    && lastButton.getText().equals(gb.getText())) {
+                gb.setVisible(false);
+                lastButton.setVisible(false);
+                lastButton = null;
+                gb = null;
+                gamePairMatched++;
+                gameScore += gameInfo.getMatchScore();
+                updateScore();
+                totalCorrectPairs++;
+                if (gamePairMatched == PAIRS_COUNT) {
+                    logger.info("Matches done for user [" + username + "], game level [" + gameLevel + "], " +
+                            "game score [" + gameScore + "]");
+                    gameLevel++;
+                    updateLevel();
+                    gamePairMatched = 0;
+                    createButtons();
+                }
+            } else {
+                if (lastButton != null && lastButton.isClicked() && gb.isClicked()
+                        && !(lastButton.getText().equals(gb.getText()))) {
+                    logger.warn("Wrong match by user [" + username + "], game level [" + gameLevel + "], " +
+                            "game score [" + gameScore + "], " +
+                            "button 1 [" + lastButton + "] and button 2 [" + gb + "]");
+                    lastButton = null;
+                    gb = null;
+                    gamePairMatched = 0;
+                    totalWrongPairs++;
+                    showWrongMatchScreen();
+                }
+            }
+            if (lastButton == null && gb != null) {
+                lastButton = gb;
+            }
         }
     }
 
@@ -810,6 +812,7 @@ public class MatchPair extends AppFrame {
         enableControls();
         gameScores.get(getUsernameForMap()).addScore(new GameScore(gameScore, Utils.getFormattedDate(), gameAccuracy, gameLevel));
         loadTableData();
+        gameStatus = Status.STOP;
 
         for (Map.Entry<Character, List<GameButton>> entry : gamePairs.entrySet()) {
             Character k = entry.getKey();
