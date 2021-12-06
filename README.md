@@ -29,5 +29,7 @@
 * Username can be set and score per user will be stored along with high scores.
 
 #### Application Images
-* Application Present Image<br>
-![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-5-dec-2021.png)
+* Application Present Image - Game screen<br>
+![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-6-dec-2021.png)
+* Application Home screen<br>
+![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-home-5-dec-2021.png)
