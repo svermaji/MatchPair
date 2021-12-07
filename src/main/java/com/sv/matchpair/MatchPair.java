@@ -29,7 +29,6 @@ import java.util.Timer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static com.sv.core.Constants.*;
 import static com.sv.matchpair.AppConstants.*;
@@ -72,7 +71,7 @@ public class MatchPair extends AppFrame {
     private AppTable tblTopScore, tblRecentScore, tblUsers;
     private DefaultTableModel topScoreModel, recentScoreModel, userModel;
     private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel,
-            waitPanel, historyPanel, waitLblsPanel, userPanel, tblPanel, helpPanel;
+            waitPanel, historyPanel, graphPanel, waitLblsPanel, userPanel, tblPanel, helpPanel;
     private JScrollPane jspHelp;
     private JSplitPane splitPane;
     private JComponent[] componentsToColor, commonScreens;
@@ -146,6 +145,7 @@ public class MatchPair extends AppFrame {
         prepareWaitScreen();
 
         topPanel = new AppPanel(new BorderLayout());
+        helpPanel = new AppPanel();
         titledBorder = SwingUtils.createTitledBorder(TITLE_HEADING, fg);
         topPanel.setBorder(titledBorder);
         UIName uin = UIName.BTN_USER;
@@ -247,7 +247,8 @@ public class MatchPair extends AppFrame {
         uin = UIName.MI_HELP_BROWSER;
         AppMenuItem miHelpBrowser = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
         menu.add(miHelpBrowser);
-        miHelp.addActionListener(e -> showHelpInBrowser());
+        //miHelpBrowser.addActionListener(e -> showHelpInBrowser());
+        miHelpBrowser.addActionListener(e -> setupHistory());
         menuBar.add(menu);
 
         SwingUtils.updateUIFor(menuBar);
@@ -256,7 +257,7 @@ public class MatchPair extends AppFrame {
                 menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
                 tblUsers.getTableHeader()
         };
-        commonScreens = new JComponent[]{jspHelp, waitPanel, historyPanel};
+        //commonScreens = new JComponent[]{helpPanel, waitPanel, historyPanel};
         colorChange(cnfIdx);
         setControlsToEnable();
         addBindings();
@@ -267,6 +268,19 @@ public class MatchPair extends AppFrame {
 
     private void setupHistory() {
         historyPanel = new AppPanel();
+        graphPanel = new LineGraphPanel(prepareGraphData (getUserTopScores()));
+        historyPanel.add(graphPanel);
+        buttonsPanel.add(historyPanel);
+        commonScreens = new JComponent[]{helpPanel, waitPanel, historyPanel};
+        showScreen("history");
+    }
+
+    private List<LineGraphPanelData> prepareGraphData(List<GameScore> scores) {
+        List<LineGraphPanelData> data = new ArrayList<>();
+        scores.forEach(s -> {
+            data.add(new LineGraphPanelData(s.getScoreAsInt(), s.getDate()+""));
+        });
+        return data;
     }
 
     private void setupHelp() {
@@ -281,15 +295,16 @@ public class MatchPair extends AppFrame {
         }
         jspHelp = new JScrollPane(tpHelp);
         jspHelp.setBorder(EMPTY_BORDER);
-        buttonsPanel.add(jspHelp, BorderLayout.CENTER);
+        helpPanel.add(jspHelp);
+        buttonsPanel.add(helpPanel, BorderLayout.CENTER);
     }
 
     // This method will decide which panel to show
     private void showScreen(String nm) {
-        JComponent toShow = null;
+        AppPanel toShow = null;
         switch (nm) {
             case "help":
-                toShow = jspHelp;
+                toShow = helpPanel;
                 break;
             case "wait":
             case "wrong":
@@ -303,6 +318,7 @@ public class MatchPair extends AppFrame {
             Arrays.stream(commonScreens).forEach(c -> c.setVisible(false));
             toShow.setVisible(true);
         }
+        SwingUtils.updateUIFor(buttonsPanel);
     }
 
     private void showHelpInBrowser() {
@@ -367,7 +383,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void loadTableData() {
-        GameScores gs = gameScores.get(getUsernameForMap());
+        GameScores gs = getUserGameScores();
         if (gs != null) {
             populateScoreTbl(gs.getTopScores(), topScoreModel);
             populateScoreTbl(gs.getRecentScores(), recentScoreModel);
@@ -555,6 +571,22 @@ public class MatchPair extends AppFrame {
 
     private GameScores getGameScores(String user, String gameScoreCsv) {
         return new GameScores(user, processScores(gameScoreCsv));
+    }
+
+    private List<GameScore> getUserTopScores() {
+        return getUserGameScores().getTopScores();
+    }
+
+    private List<GameScore> getUserRecentScores() {
+        return getUserGameScores().getRecentScores();
+    }
+
+    private GameScores getUserGameScores() {
+        return gameScores.get(getUsernameForMap());
+    }
+
+    private int getUserTopScore() {
+        return getUserGameScores().getTopScore();
     }
 
     private List<GameScore> processScores(String scoreStr) {
@@ -854,7 +886,7 @@ public class MatchPair extends AppFrame {
         );
         btnStart.setText(UIName.BTN_START.name);
         enableControls();
-        gameScores.get(getUsernameForMap()).addScore(new GameScore(gameScore, Utils.getFormattedDate(), gameAccuracy, gameLevel));
+        getUserGameScores().addScore(new GameScore(gameScore, Utils.getFormattedDate(), gameAccuracy, gameLevel));
         loadTableData();
         gameStatus = Status.STOP;
 
