@@ -373,9 +373,9 @@ public class MatchPair extends AppFrame {
         AtomicInteger a = new AtomicInteger();
         sorted.forEach((k, v) -> {
             model.addRow(new String[]{
-                            "<html><span color='" + cc[a.get()] + "'>&#x1F451;</span><html>",
+                            "<html><span color='" + cc[a.get()] + "'>&#x1F451;</span></html>",
                             v.getUsername(),
-                            v.getTopScore() + "",
+                            v.getTopScore() + ""
                     }
             );
             if (a.intValue() < CCLimit) {
