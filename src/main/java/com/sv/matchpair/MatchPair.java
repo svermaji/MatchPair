@@ -302,7 +302,7 @@ public class MatchPair extends AppFrame {
     private void setAllTables() {
         String[] topScoreCols = new String[]{"Top Score", "Date", "Accuracy", "Level"};
         String[] recentScoreCols = new String[]{"Recent Score", "Date", "Accuracy", "Level"};
-        String[] userCols = new String[]{"User", "Top Score", "Accuracy", "Level"};
+        String[] userCols = new String[]{"#", "User", "Top Score"};
 
         topScoreModel = SwingUtils.getTableModel(topScoreCols);
         recentScoreModel = SwingUtils.getTableModel(recentScoreCols);
@@ -367,15 +367,22 @@ public class MatchPair extends AppFrame {
                         Comparator.comparingInt(GameScores::getTopScore))))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2, LinkedHashMap::new));
 
+        // crown colors
+        String[] cc = {"#FDD017", "#C0C0C0", "#CD7F32", "black"};
+        int CCLimit = 3;
+        AtomicInteger a = new AtomicInteger();
         sorted.forEach((k, v) -> {
-            boolean hasData = v.getTopScores().size() > 0;
-            model.addRow(new String[]{v.getUsername(),
+            model.addRow(new String[]{
+                            "<html><span color='" + cc[a.get()] + "'>&#x1F451;</span><html>",
+                            v.getUsername(),
                             v.getTopScore() + "",
-                            hasData ? v.getTopScores().get(0).getAccuracy() : "0",
-                            hasData ? v.getTopScores().get(0).getLevel() : "0"
                     }
             );
+            if (a.intValue() < CCLimit) {
+                a.getAndIncrement();
+            }
         });
+        tblUsers.getColumnModel().getColumn(0).setMaxWidth((int) (appFontSize * 1.5));
     }
 
     public List<GameButton> prepareGameButtons(GameInfo gi) {
