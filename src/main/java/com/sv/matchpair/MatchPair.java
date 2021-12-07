@@ -8,6 +8,7 @@ import com.sv.matchpair.task.AppFontChangerTask;
 import com.sv.matchpair.task.GameTimerTask;
 import com.sv.matchpair.task.GameCompletedTask;
 import com.sv.matchpair.task.WaitTimerTask;
+import com.sv.runcmd.RunCommand;
 import com.sv.swingui.KeyActionDetails;
 import com.sv.swingui.SwingUtils;
 import com.sv.swingui.component.*;
@@ -71,10 +72,10 @@ public class MatchPair extends AppFrame {
     private AppTable tblTopScore, tblRecentScore, tblUsers;
     private DefaultTableModel topScoreModel, recentScoreModel, userModel;
     private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel,
-            waitPanel, waitLblsPanel, userPanel, tblPanel, helpPanel;
+            waitPanel, historyPanel, waitLblsPanel, userPanel, tblPanel, helpPanel;
     private JScrollPane jspHelp;
     private JSplitPane splitPane;
-    private JComponent[] componentsToColor;
+    private JComponent[] componentsToColor, commonScreens;
     private GameInfo gameInfo;
 
     private Status gameStatus = Status.NOT_STARTED;
@@ -88,6 +89,7 @@ public class MatchPair extends AppFrame {
     private final String TITLE_HEADING = "Controls";
     private final String GAME_SCORE_LOC = "./src/main/resources/scores.config";
     private final String GAME_CONFIGS_LOC = "./src/main/resources/game-configs";
+    private final String OPEN_HELP_LOC = "./src/main/resources/show-help.bat";
     private final String GAME_SEQ_LOC = "./src/main/resources/game-sequences.config";
     private final int MAX_NAME = 12;
 
@@ -204,6 +206,7 @@ public class MatchPair extends AppFrame {
         centerPanel = new AppPanel(new BorderLayout());
         buttonsPanel = new AppPanel(new BorderLayout());
         setupHelp();
+        setupHistory();
         setAllTables();
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tblPanel, buttonsPanel);
         splitPane.setOneTouchExpandable(true);
@@ -241,6 +244,10 @@ public class MatchPair extends AppFrame {
         AppMenuItem miHelp = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
         menu.add(miHelp);
         miHelp.addActionListener(e -> showHelp());
+        uin = UIName.MI_HELP_BROWSER;
+        AppMenuItem miHelpBrowser = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
+        menu.add(miHelpBrowser);
+        miHelp.addActionListener(e -> showHelpInBrowser());
         menuBar.add(menu);
 
         SwingUtils.updateUIFor(menuBar);
@@ -249,13 +256,17 @@ public class MatchPair extends AppFrame {
                 menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
                 tblUsers.getTableHeader()
         };
-
+        commonScreens = new JComponent[]{jspHelp, waitPanel, historyPanel};
         colorChange(cnfIdx);
         setControlsToEnable();
         addBindings();
         updateUNAutoComplete();
 
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
+    }
+
+    private void setupHistory() {
+        historyPanel = new AppPanel();
     }
 
     private void setupHelp() {
@@ -269,7 +280,33 @@ public class MatchPair extends AppFrame {
             logger.error("Unable to display help");
         }
         jspHelp = new JScrollPane(tpHelp);
+        jspHelp.setBorder(EMPTY_BORDER);
         buttonsPanel.add(jspHelp, BorderLayout.CENTER);
+    }
+
+    // This method will decide which panel to show
+    private void showScreen(String nm) {
+        JComponent toShow = null;
+        switch (nm) {
+            case "help":
+                toShow = jspHelp;
+                break;
+            case "wait":
+            case "wrong":
+                toShow = waitPanel;
+                break;
+            case "history":
+                toShow = historyPanel;
+                break;
+        }
+        if (toShow != null) {
+            Arrays.stream(commonScreens).forEach(c -> c.setVisible(false));
+            toShow.setVisible(true);
+        }
+    }
+
+    private void showHelpInBrowser() {
+        new RunCommand(new String[]{OPEN_HELP_LOC + SPACE + Utils.getCurrentDir()}, logger);
     }
 
     private void showHelp() {
@@ -906,8 +943,8 @@ public class MatchPair extends AppFrame {
     }
 
     private void saveUsername() {
-        username = txtUser.getText().trim();
-        if (isValidName(username)) {
+        if (isValidName(txtUser.getText().trim())) {
+            username = txtUser.getText().trim();
             username = Utils.convertToTitleCase(username);
             btnUser.setText(UIName.BTN_USER.name + SPACE + username);
             // just to hide controls
