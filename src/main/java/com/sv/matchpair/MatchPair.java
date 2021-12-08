@@ -66,6 +66,7 @@ public class MatchPair extends AppFrame {
     private Map<String, GameScores> gameScores;
     private Map<Character, List<GameButton>> gamePairs;
 
+    private JPopupMenu tblUsersPopupMenu = new JPopupMenu();
     private TitledBorder titledBorder;
     private JMenuBar menuBar;
     private AppMenu menu;
@@ -422,6 +423,24 @@ public class MatchPair extends AppFrame {
         tblTopScore.setTableHeader(new AppTableHeaderToolTip(tblTopScore.getColumnModel(), topScoreCols));
         tblRecentScore.setTableHeader(new AppTableHeaderToolTip(tblRecentScore.getColumnModel(), recentScoreCols));
         tblUsers.setTableHeader(new AppTableHeaderToolTip(tblUsers.getColumnModel(), userCols));
+
+        UIName uin = UIName.MI_SETUSER;
+        JMenuItem tblUserMISetUser = new JMenuItem(uin.name, uin.mnemonic);
+        tblUserMISetUser.addActionListener(evt -> setUsernameFromUser());
+        tblUsersPopupMenu.add(tblUserMISetUser);
+        // sets the popup menu for the table
+        tblUsers.setComponentPopupMenu(tblUsersPopupMenu);
+        tblUsers.setOpaque(true);
+        tblUsers.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (SwingUtilities.isRightMouseButton(e)) {
+                    tblUsers.clearSelection();
+                    int row = tblUsers.rowAtPoint(e.getPoint());
+                    tblUsers.addRowSelectionInterval(row, row);
+                }
+            }
+        });
 
         setTable(tblTopScore, topScoreModel);
         setTable(tblRecentScore, recentScoreModel);
@@ -1001,15 +1020,22 @@ public class MatchPair extends AppFrame {
         txtUser.selectAll();
     }
 
+    private void setUsernameFromUser() {
+        setUsername(tblUsers.getValueAt(tblUsers.getSelectedRow(), 1).toString());
+    }
+
+    private void setUsername(String un) {
+        username = Utils.convertToTitleCase(un);
+        btnUser.setText(UIName.BTN_USER.name + SPACE + username);
+        // just to hide controls
+        doNotSaveUsername();
+        storeAndLoad();
+        updateUNAutoComplete();
+    }
+
     private void saveUsername() {
         if (isValidName(txtUser.getText().trim())) {
-            username = txtUser.getText().trim();
-            username = Utils.convertToTitleCase(username);
-            btnUser.setText(UIName.BTN_USER.name + SPACE + username);
-            // just to hide controls
-            doNotSaveUsername();
-            storeAndLoad();
-            updateUNAutoComplete();
+            setUsername(txtUser.getText().trim());
         } else {
             getToolkit().beep();
             if (username.length() > MAX_NAME) {
