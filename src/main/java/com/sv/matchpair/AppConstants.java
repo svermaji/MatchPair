@@ -28,5 +28,5 @@ public final class AppConstants {
     };
 
     public static final Color GAME_BTN_COLOR = Color.white;
-    public static final Color GAME_BTN_CLICK_COLOR = Color.lightGray;
+    public static final Color GAME_BTN_CLICK_COLOR = new Color(255,228,181);
 }

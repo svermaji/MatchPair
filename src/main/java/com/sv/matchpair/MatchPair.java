@@ -67,6 +67,7 @@ public class MatchPair extends AppFrame {
     private Map<Character, List<GameButton>> gamePairs;
 
     private JPopupMenu tblUsersPopupMenu = new JPopupMenu();
+    private AppMenuItem tblUserMISetUser;
     private TitledBorder titledBorder;
     private JMenuBar menuBar;
     private AppMenu menu;
@@ -425,7 +426,7 @@ public class MatchPair extends AppFrame {
         tblUsers.setTableHeader(new AppTableHeaderToolTip(tblUsers.getColumnModel(), userCols));
 
         UIName uin = UIName.MI_SETUSER;
-        JMenuItem tblUserMISetUser = new JMenuItem(uin.name, uin.mnemonic);
+        tblUserMISetUser = new AppMenuItem(uin.name, uin.mnemonic);
         tblUserMISetUser.addActionListener(evt -> setUsernameFromUser());
         tblUsersPopupMenu.add(tblUserMISetUser);
         // sets the popup menu for the table
@@ -763,6 +764,7 @@ public class MatchPair extends AppFrame {
         appFontSize = fs;
         logger.info("Application font changed to " + Utils.addBraces(fs));
 
+        SwingUtils.changeFont(tblUserMISetUser, appFontSize);
         // calling to change tooltip font
         changeAppColor();
     }
@@ -882,8 +884,9 @@ public class MatchPair extends AppFrame {
         }
         btnsPanel.setLayout(new GridLayout(rows, cols));
 
-        int gap = 150;
-        btnsPanel.setBorder(new EmptyBorder(new Insets(gap, gap, gap, gap)));
+        int gap = 170;
+        int vgap = 130;
+        btnsPanel.setBorder(new EmptyBorder(new Insets(vgap, gap, vgap, gap)));
         // randomize buttons
         List<GameButton> gameBtns = prepareGameButtons(gameInfo);
         List<GameButton> gameBtnsRandomize = new ArrayList<>(gameBtns);
@@ -933,12 +936,11 @@ public class MatchPair extends AppFrame {
         gameStatus = Status.STOP;
 
         for (Map.Entry<Character, List<GameButton>> entry : gamePairs.entrySet()) {
-            Character k = entry.getKey();
             List<GameButton> v = entry.getValue();
             GameButton b1 = v.get(0), b2 = v.get(1);
             if (b1.isVisible() && b2.isVisible()) {
-                b1.setBackground(hbg);
-                b2.setBackground(hbg);
+                b1.setBackground(GAME_BTN_CLICK_COLOR);
+                b2.setBackground(GAME_BTN_CLICK_COLOR);
                 break;
             }
         }
