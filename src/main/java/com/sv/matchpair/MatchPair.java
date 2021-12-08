@@ -941,7 +941,7 @@ public class MatchPair extends AppFrame {
         if (getUserRecentScores().size() > 1) {
             showHistory();
         } else {
-            showScreen(GameScreens.none);
+            showScreen(GameScreens.help);
         }
         cancelTimers();
     }
