@@ -1026,6 +1026,7 @@ public class MatchPair extends AppFrame {
 
     private void setUsernameFromUser() {
         setUsername(tblUsers.getValueAt(tblUsers.getSelectedRow(), 1).toString());
+        showHistory();
     }
 
     private void setUsername(String un) {
@@ -1132,7 +1133,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void setControlsToEnable() {
-        Component[] components = {menuBar, menu};
+        Component[] components = {menuBar, menu, tblUserMISetUser};
         setComponentToEnable(components);
         setComponentContrastToEnable(new Component[]{btnPause});
         enableControls();
