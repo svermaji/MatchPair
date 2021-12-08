@@ -301,6 +301,9 @@ public class MatchPair extends AppFrame {
         }
         graphPanel = new LineGraphPanel(prepareGraphData(getUserRecentScores()));
         graphPanel.setMargin(100);
+        graphPanel.setFontColor(fg);
+        graphPanel.setPointColor(fg);
+        graphPanel.setLineColor(bg);
         historyPanel.add(graphPanel);
         graphPanel.setToolTipColorsNFont(fg, bg, SwingUtils.getNewFont(getFont(), fontName));
         showScreen(GameScreens.history);
