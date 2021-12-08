@@ -384,6 +384,31 @@ public class MatchPair extends AppFrame {
         logger.info("Showing screen for " + Utils.addBraces(nm));
     }
 
+    // This method will decide which panel to show
+    private boolean isScreenVisible(GameScreens gs) {
+        AppPanel toShow = null;
+        String nm = gs.name();
+        switch (nm) {
+            case "help":
+                toShow = helpPanel;
+                break;
+            case "game":
+                toShow = btnsPanel;
+                break;
+            case "wait":
+            case "wrong":
+                toShow = waitPanel;
+                break;
+            case "history":
+                toShow = historyPanel;
+                break;
+        }
+
+        boolean result = toShow != null && toShow.isVisible();
+        logger.info("isScreenVisible screen for " + Utils.addBraces(nm) + " is " + Utils.addBraces(result));
+        return result;
+    }
+
     private void showHelpInBrowser() {
         new RunCommand(new String[]{OPEN_HELP_LOC + SPACE + Utils.getCurrentDir()}, logger);
     }
@@ -1026,7 +1051,9 @@ public class MatchPair extends AppFrame {
 
     private void setUsernameFromUser() {
         setUsername(tblUsers.getValueAt(tblUsers.getSelectedRow(), 1).toString());
-        showHistory();
+        if (isScreenVisible(GameScreens.history)) {
+            showHistory();
+        }
     }
 
     private void setUsername(String un) {
