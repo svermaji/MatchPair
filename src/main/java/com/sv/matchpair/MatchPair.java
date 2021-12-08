@@ -938,7 +938,11 @@ public class MatchPair extends AppFrame {
     }
 
     public void gameCompletedActions() {
-        showScreen(GameScreens.none);
+        if (getUserRecentScores().size() > 1) {
+            showHistory();
+        } else {
+            showScreen(GameScreens.none);
+        }
         cancelTimers();
     }
 
@@ -953,7 +957,7 @@ public class MatchPair extends AppFrame {
         updateScore();
         updateLevel();
         updateGameTime();
-        showScreen(GameScreens.none);
+        showScreen(GameScreens.help);
     }
 
     public void updateGameTime() {
