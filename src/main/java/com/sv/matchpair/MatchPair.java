@@ -55,6 +55,10 @@ public class MatchPair extends AppFrame {
         NOT_STARTED, START, PAUSED, STOP
     }
 
+    public enum GameScreens {
+        help, wait, wrong, game, history, none
+    }
+
     private MyLogger logger;
     private DefaultConfigs configs;
     private Map<String, GameInfo> gameInfos;
@@ -71,10 +75,12 @@ public class MatchPair extends AppFrame {
     private AppTable tblTopScore, tblRecentScore, tblUsers;
     private DefaultTableModel topScoreModel, recentScoreModel, userModel;
     private AppPanel topPanel, centerPanel, buttonsPanel, btnsPanel,
-            waitPanel, historyPanel, graphPanel, waitLblsPanel, userPanel, tblPanel, helpPanel;
+            waitPanel, historyPanel, waitLblsPanel, userPanel, tblPanel, helpPanel;
+    private LineGraphPanel graphPanel;
     private JScrollPane jspHelp;
     private JSplitPane splitPane;
-    private JComponent[] componentsToColor, commonScreens;
+    private JComponent[] componentsToColor;
+    private List<JComponent> commonScreens;
     private GameInfo gameInfo;
 
     private Status gameStatus = Status.NOT_STARTED;
@@ -142,10 +148,7 @@ public class MatchPair extends AppFrame {
         Container parentContainer = getContentPane();
         parentContainer.setLayout(new BorderLayout());
 
-        prepareWaitScreen();
-
         topPanel = new AppPanel(new BorderLayout());
-        helpPanel = new AppPanel();
         titledBorder = SwingUtils.createTitledBorder(TITLE_HEADING, fg);
         topPanel.setBorder(titledBorder);
         UIName uin = UIName.BTN_USER;
@@ -182,9 +185,6 @@ public class MatchPair extends AppFrame {
         updateScore();
         menuBar = new JMenuBar();
 
-        AppLabel[] lbls = {lblLevel, lblWaitTime, lblTime, lblScore};
-        Arrays.stream(lbls).forEach(l -> l.setHorizontalAlignment(SwingConstants.CENTER));
-
         userPanel = new AppPanel();
         userPanel.setLayout(new GridLayout(1, 1));
         userPanel.add(btnUser);
@@ -205,9 +205,22 @@ public class MatchPair extends AppFrame {
 
         centerPanel = new AppPanel(new BorderLayout());
         buttonsPanel = new AppPanel(new BorderLayout());
+
+        helpPanel = new AppPanel(new BorderLayout());
+        waitPanel = new AppPanel(new BorderLayout());
+        historyPanel = new AppPanel(new BorderLayout());
+        btnsPanel = new AppPanel(new BorderLayout());
+
+        buttonsPanel.add(helpPanel);
+        buttonsPanel.add(waitPanel);
+        buttonsPanel.add(btnsPanel);
+        buttonsPanel.add(historyPanel);
+
+        prepareWaitScreen();
         setupHelp();
-        setupHistory();
         setAllTables();
+        AppLabel[] lbls = {lblLevel, lblWaitTime, lblTime, lblScore};
+        Arrays.stream(lbls).forEach(l -> l.setHorizontalAlignment(SwingConstants.CENTER));
         splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, tblPanel, buttonsPanel);
         splitPane.setOneTouchExpandable(true);
         splitPane.setResizeWeight(0.01);
@@ -240,6 +253,11 @@ public class MatchPair extends AppFrame {
                 true, true, false, this, logger));
         menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
         menu.addSeparator();
+        uin = UIName.MI_HISTORY;
+        AppMenuItem miHistory = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
+        menu.add(miHistory);
+        miHistory.addActionListener(e -> showHistory());
+        menu.addSeparator();
         uin = UIName.MI_HELP;
         AppMenuItem miHelp = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
         menu.add(miHelp);
@@ -248,7 +266,7 @@ public class MatchPair extends AppFrame {
         AppMenuItem miHelpBrowser = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
         menu.add(miHelpBrowser);
         //miHelpBrowser.addActionListener(e -> showHelpInBrowser());
-        miHelpBrowser.addActionListener(e -> setupHistory());
+        miHelpBrowser.addActionListener(e -> showHistory());
         menuBar.add(menu);
 
         SwingUtils.updateUIFor(menuBar);
@@ -257,7 +275,11 @@ public class MatchPair extends AppFrame {
                 menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
                 tblUsers.getTableHeader()
         };
-        //commonScreens = new JComponent[]{helpPanel, waitPanel, historyPanel};
+        commonScreens = new ArrayList();
+        commonScreens.add(helpPanel);
+        commonScreens.add(waitPanel);
+        commonScreens.add(historyPanel);
+        commonScreens.add(btnsPanel);
         colorChange(cnfIdx);
         setControlsToEnable();
         addBindings();
@@ -266,20 +288,20 @@ public class MatchPair extends AppFrame {
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
     }
 
-    private void setupHistory() {
-        historyPanel = new AppPanel();
-        graphPanel = new LineGraphPanel(prepareGraphData (getUserTopScores()));
+    private void showHistory() {
+        if (graphPanel != null) {
+            historyPanel.remove(graphPanel);
+        }
+        graphPanel = new LineGraphPanel(prepareGraphData(getUserRecentScores()));
+        graphPanel.setMargin(100);
         historyPanel.add(graphPanel);
-        buttonsPanel.add(historyPanel);
-        commonScreens = new JComponent[]{helpPanel, waitPanel, historyPanel};
-        showScreen("history");
+        graphPanel.setToolTipColorsNFont(fg, bg, SwingUtils.getNewFont(getFont(), fontName));
+        showScreen(GameScreens.history);
     }
 
     private List<LineGraphPanelData> prepareGraphData(List<GameScore> scores) {
         List<LineGraphPanelData> data = new ArrayList<>();
-        scores.forEach(s -> {
-            data.add(new LineGraphPanelData(s.getScoreAsInt(), s.getDate()+""));
-        });
+        scores.forEach(s -> data.add(new LineGraphPanelData(s.getScoreAsInt(), s.getDate() + "")));
         return data;
     }
 
@@ -296,15 +318,18 @@ public class MatchPair extends AppFrame {
         jspHelp = new JScrollPane(tpHelp);
         jspHelp.setBorder(EMPTY_BORDER);
         helpPanel.add(jspHelp);
-        buttonsPanel.add(helpPanel, BorderLayout.CENTER);
     }
 
     // This method will decide which panel to show
-    private void showScreen(String nm) {
+    private void showScreen(GameScreens gs) {
         AppPanel toShow = null;
+        String nm = gs.name();
         switch (nm) {
             case "help":
                 toShow = helpPanel;
+                break;
+            case "game":
+                toShow = btnsPanel;
                 break;
             case "wait":
             case "wrong":
@@ -314,11 +339,18 @@ public class MatchPair extends AppFrame {
                 toShow = historyPanel;
                 break;
         }
+        commonScreens.forEach(c -> {
+            if (null != c) {
+                c.setVisible(false);
+            } else {
+                System.out.println("null.....");
+            }
+        });
         if (toShow != null) {
-            Arrays.stream(commonScreens).forEach(c -> c.setVisible(false));
             toShow.setVisible(true);
         }
         SwingUtils.updateUIFor(buttonsPanel);
+        logger.info("Showing screen for " + nm);
     }
 
     private void showHelpInBrowser() {
@@ -335,7 +367,6 @@ public class MatchPair extends AppFrame {
 
     private void prepareWaitScreen() {
         lblWaitTime = new AppLabel();
-        waitPanel = new AppPanel();
         BoxLayout boxlayout = new BoxLayout(waitPanel, BoxLayout.PAGE_AXIS);
         waitPanel.setLayout(boxlayout);
         int r = 3, c = 3;
@@ -530,8 +561,8 @@ public class MatchPair extends AppFrame {
     }
 
     private void showWrongMatchScreen() {
-        hideGamePanel();
-        showWaitScreen();
+        setWaitScreen();
+        showScreen(GameScreens.wrong);
         lblWaitTime.setText("Wrong");
         // this wont impact by cancelTimers bcoz gameTime not changed
         gameWaitTime = 0;
@@ -745,34 +776,16 @@ public class MatchPair extends AppFrame {
         txtUser.setAutoCompleteArr(getUsernames());
     }
 
-    private void showGamePanel() {
-        changeGamePanel(true);
-    }
-
-    private void changeGamePanel(boolean status) {
-        if (btnsPanel != null) {
-            btnsPanel.setVisible(status);
-        }
-    }
-
-    private void hideGamePanel() {
-        changeGamePanel(false);
-    }
-
-    private void hideAllGamePanel() {
-        hideGamePanel();
-        waitPanel.setVisible(false);
-    }
-
     private void startNewGame() {
         resetGame();
         showWaitScreenAndStart();
     }
 
     public void updateWaitTime() {
+        System.out.println("in wait time " + gameWaitTime);
         if (gameWaitTime == 0) {
             cancelTimers();
-            showGameScreen();
+            setGameScreen();
         } else {
             lblWaitTime.setText(gameWaitTime + "");
             gameWaitTime--;
@@ -780,30 +793,26 @@ public class MatchPair extends AppFrame {
     }
 
     private void showWaitScreenAndStart() {
-        showWaitScreen();
+        setWaitScreen();
+        showScreen(GameScreens.wait);
         Timer t = new Timer();
         t.scheduleAtFixedRate(new WaitTimerTask(this), 0, SEC_1);
         TIMERS.add(t);
+        System.out.println("wait timer");
     }
 
-    private void showWaitScreen() {
+    private void setWaitScreen() {
         if (btnsPanel != null) {
             buttonsPanel.remove(btnsPanel);
         }
         SwingUtils.changeFont(lblWaitTime, gameBtnFontSize);
         Arrays.stream(waitLblsPanel.getComponents()).forEach(c ->
                 SwingUtils.setComponentColor((JComponent) c, null, fg));
-        waitPanel.setVisible(true);
-        buttonsPanel.setLayout(new BorderLayout());
-        buttonsPanel.add(waitPanel, BorderLayout.CENTER);
-        SwingUtils.updateUIFor(buttonsPanel);
     }
 
-    private void showGameScreen() {
-        waitPanel.setVisible(false);
-        buttonsPanel.remove(waitPanel);
+    private void setGameScreen() {
         createButtons();
-        showGamePanel();
+        showScreen(GameScreens.game);
         Timer t = new Timer();
         t.scheduleAtFixedRate(new GameTimerTask(this), 0, SEC_1);
         TIMERS.add(t);
@@ -842,7 +851,6 @@ public class MatchPair extends AppFrame {
         // randomize buttons
         List<GameButton> gameBtns = prepareGameButtons(gameInfo);
         List<GameButton> gameBtnsRandomize = new ArrayList<>(gameBtns);
-        long time = Utils.getNowMillis();
         Collections.shuffle(gameBtnsRandomize);
         int r = 0, c = 0;
         for (GameButton b : gameBtnsRandomize) {
@@ -860,7 +868,7 @@ public class MatchPair extends AppFrame {
         }
         logger.info("Game pairs are [" + gamePairs.size() + "]. Details: " + gamePairs);
         changeGameBtnFont();
-        buttonsPanel.add(btnsPanel, BorderLayout.CENTER);
+        buttonsPanel.add(btnsPanel);
         SwingUtils.updateUIFor(buttonsPanel);
     }
 
@@ -915,7 +923,7 @@ public class MatchPair extends AppFrame {
     }
 
     public void gameCompletedActions() {
-        hideGamePanel();
+        showScreen(GameScreens.none);
         cancelTimers();
     }
 
@@ -930,7 +938,7 @@ public class MatchPair extends AppFrame {
         updateScore();
         updateLevel();
         updateGameTime();
-        hideAllGamePanel();
+        showScreen(GameScreens.none);
     }
 
     public void updateGameTime() {
@@ -1027,11 +1035,11 @@ public class MatchPair extends AppFrame {
         gameStatus = gameStatus == Status.PAUSED ? Status.START : Status.PAUSED;
         if (isGamePaused()) {
             btnPause.setText("Resume");
-            hideGamePanel();
+            showScreen(GameScreens.none);
         } else {
             btnPause.setText(UIName.BTN_PAUSE.name);
             btnPause.setForeground(fg);
-            showGamePanel();
+            showScreen(GameScreens.game);
         }
     }
 

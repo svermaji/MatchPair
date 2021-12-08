@@ -14,6 +14,7 @@ public enum UIName {
     LBL_SCORE("Score", 'l', "Score of the game"),
     LBL_TIME("Time", 'm', "Time remaining of the game"),
     MENU("Settings", 'g', "Different system settings"),
+    MI_HISTORY("History", 'y', "Scores history"),
     MI_HELP("Help", 'h', "Help about game"),
     MI_HELP_BROWSER("Help in browser", 'w', "Open help in browser");
 
