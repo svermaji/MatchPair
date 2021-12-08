@@ -20,6 +20,7 @@
 ## Description
 * It's a GAME !!!
 * User can start game that is for 80 seconds
+* Shows graph with tooltip
 * At the end of game, next matching pair will be highlighted
 * If wrongly clicked if will warn user
 * Game rule - in each level you need to match 3 pairs and level will increase.

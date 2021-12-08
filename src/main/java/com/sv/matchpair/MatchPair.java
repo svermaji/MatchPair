@@ -312,7 +312,8 @@ public class MatchPair extends AppFrame {
     private List<LineGraphPanelData> prepareGraphData(List<GameScore> scores) {
         List<LineGraphPanelData> data = new ArrayList<>();
         // returning last GRAPH_POINT_LIMIT only
-        scores.stream().limit(GRAPH_POINT_LIMIT).forEach(s -> data.add(new LineGraphPanelData(s.getScoreAsInt(), s.getDate() + "")));
+        scores.stream().limit(GRAPH_POINT_LIMIT).forEach(s ->
+                data.add(new LineGraphPanelData(s.getScoreAsInt(), s.getDate() + "", true)));
         return data;
     }
 
