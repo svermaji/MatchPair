@@ -301,18 +301,30 @@ public class MatchPair extends AppFrame {
         }
         graphPanel = new LineGraphPanel(prepareGraphData(getUserRecentScores()));
         graphPanel.setMargin(100);
-        graphPanel.setFontColor(fg);
-        graphPanel.setPointColor(fg);
-        graphPanel.setLineColor(bg);
+        setGraphColors();
         historyPanel.add(graphPanel);
         graphPanel.setToolTipColorsNFont(fg, bg, SwingUtils.getNewFont(getFont(), fontName));
         showScreen(GameScreens.history);
     }
 
+    private void setGraphColors() {
+        if (graphPanel != null) {
+            Font f = SwingUtils.getPlainNewFont(fontName, appFontSize);
+            graphPanel.setGraphFont(f);
+            graphPanel.setFontColor(fg);
+            graphPanel.setPointColor(fg);
+            graphPanel.setLineColor(bg);
+            graphPanel.setToolTipColorsNFont(fg, bg, f);
+        }
+    }
+
     private List<LineGraphPanelData> prepareGraphData(List<GameScore> scores) {
         List<LineGraphPanelData> data = new ArrayList<>();
+        List<GameScore> scoresForGraph = new ArrayList<>();
+        scores.stream().limit(GRAPH_POINT_LIMIT).forEach(scoresForGraph::add);
+        Collections.reverse(scoresForGraph);
         // returning last GRAPH_POINT_LIMIT only
-        scores.stream().limit(GRAPH_POINT_LIMIT).forEach(s ->
+        scoresForGraph.stream().limit(GRAPH_POINT_LIMIT).forEach(s ->
                 data.add(new LineGraphPanelData(s.getScoreAsInt(), s.getDate() + "", true)));
         return data;
     }
@@ -776,6 +788,8 @@ public class MatchPair extends AppFrame {
         Arrays.stream(tbls).forEach(t -> t.setRowHeight(appFontSize + 4));
         Arrays.stream(tbls).forEach(t ->
                 SwingUtils.applyTooltipColorNFontAllChild(t, fg, bg, SwingUtils.getNewFontSize(t.getFont(), appFontSize)));
+
+        setGraphColors();
     }
 
     private String[] getUsernames() {
