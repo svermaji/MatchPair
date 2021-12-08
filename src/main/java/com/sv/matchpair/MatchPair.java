@@ -313,6 +313,8 @@ public class MatchPair extends AppFrame {
         if (graphPanel != null) {
             Font f = SwingUtils.getPlainNewFont(fontName, appFontSize);
             graphPanel.setGraphFont(f);
+            graphPanel.setLineWidth(GRAPH_LINE_WIDTH);
+            graphPanel.setPointWidth(GRAPH_POINT_WIDTH);
             graphPanel.setFontColor(fg);
             graphPanel.setPointColor(fg);
             graphPanel.setLineColor(bg);

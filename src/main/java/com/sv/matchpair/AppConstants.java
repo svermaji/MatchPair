@@ -9,10 +9,12 @@ public final class AppConstants {
     private AppConstants() {
     }
 
-    public static final int WRONG_PAIR_MSG_TIME = 5000; // milliseconds
+    public static final int WRONG_PAIR_MSG_TIME = 300; // milliseconds
     public static final int GAME_WAIT_TIME_SEC = 3;
     public static final int ALARM_TIME_SEC = 5;
     public static final int GAME_TIME_SEC = 80;
+    public static final int GRAPH_POINT_WIDTH = 12;
+    public static final int GRAPH_LINE_WIDTH = 6;
     public static final int DEFAULT_TABLE_ROWS = 8;
     public static final int GAME_SEQ_LIMIT_MAX = 8;
     public static final int GAME_SEQ_LIMIT_MIN = 2;
