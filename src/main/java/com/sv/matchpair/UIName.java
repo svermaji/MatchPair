@@ -15,7 +15,7 @@ public enum UIName {
     LBL_TIME("Time", 'm', "Time remaining of the game"),
     MENU("Settings", 'g', "Different system settings"),
     MI_SETUSER("Set user", 't', "Set user"),
-    MI_HISTORY("History", 'y', "Scores history"),
+    BTN_HISTORY("History", 'y', "Scores history"),
     MI_HELP("Help", 'h', "Help about game"),
     MI_HELP_BROWSER("Help in browser", 'w', "Open help in browser");
 

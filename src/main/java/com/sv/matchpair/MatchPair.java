@@ -11,6 +11,7 @@ import com.sv.matchpair.task.WaitTimerTask;
 import com.sv.runcmd.RunCommand;
 import com.sv.swingui.KeyActionDetails;
 import com.sv.swingui.SwingUtils;
+import com.sv.swingui.UIConstants;
 import com.sv.swingui.component.*;
 import com.sv.swingui.component.table.AppTable;
 import com.sv.swingui.component.table.AppTableHeaderToolTip;
@@ -29,7 +30,6 @@ import java.util.Timer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static com.sv.core.Constants.*;
 import static com.sv.matchpair.AppConstants.*;
@@ -49,7 +49,8 @@ public class MatchPair extends AppFrame {
      * e.g. if enum is Xyz then when storing getXyz will be called
      */
     public enum Configs {
-        AppFontSize, GameBtnFontSize, CNFIdx, Username
+        AppFontSize, GameBtnFontSize, CNFIdx, Username, LinesJoinPoint,
+        DrawBaseLines, FirstPointOnBaseLine
     }
 
     public enum Status {
@@ -72,7 +73,7 @@ public class MatchPair extends AppFrame {
     private JMenuBar menuBar;
     private AppMenu menu;
     private JTextPane tpHelp;
-    private AppButton btnStart, btnUser, btnPause, btnExit;
+    private AppButton btnStart, btnUser, btnPause, btnHistory, btnExit;
     private AppTextField txtUser;
     private AppLabel lblTime, lblWaitTime, lblScore, lblLevel;
     private AppTable tblTopScore, tblRecentScore, tblUsers;
@@ -187,8 +188,11 @@ public class MatchPair extends AppFrame {
         uin = UIName.LBL_SCORE;
         lblScore = new AppLabel(uin.name, uin.mnemonic, uin.tip);
         updateScore();
-        menuBar = new JMenuBar();
+        uin = UIName.BTN_HISTORY;
+        btnHistory = new AppButton(uin.name, uin.mnemonic, uin.tip);
+        btnHistory.addActionListener(e -> showHistory());
 
+        menuBar = new JMenuBar();
         userPanel = new AppPanel();
         userPanel.setLayout(new GridLayout(1, 1));
         userPanel.add(btnUser);
@@ -199,6 +203,7 @@ public class MatchPair extends AppFrame {
         tbControls.add(lblLevel);
         tbControls.add(lblTime);
         tbControls.add(lblScore);
+        tbControls.add(btnHistory);
         tbControls.add(menuBar);
         tbControls.add(btnExit);
         tbControls.setLayout(new GridLayout(1, tbControls.getComponentCount()));
@@ -216,6 +221,12 @@ public class MatchPair extends AppFrame {
         waitPanel.setName("Wait Panel");
         historyPanel = new AppPanel(new BorderLayout());
         historyPanel.setName("History Panel");
+        graphPanel = new LineGraphPanel();
+        graphPanel.setMargin(100);
+        graphPanel.setLinesJoinPoint(configs.getBooleanConfig(Configs.LinesJoinPoint.name()));
+        graphPanel.setFirstPointOnBaseLine(configs.getBooleanConfig(Configs.FirstPointOnBaseLine.name()));
+        graphPanel.setDrawBaseLines(configs.getBooleanConfig(Configs.DrawBaseLines.name()));
+        historyPanel.add(graphPanel);
         btnsPanel = new AppPanel(new BorderLayout());
         btnsPanel.setName("Btns Panel");
 
@@ -261,11 +272,7 @@ public class MatchPair extends AppFrame {
         menu.add(SwingUtils.getColorsMenu(true, true,
                 true, true, false, this, logger));
         menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
-        menu.addSeparator();
-        uin = UIName.MI_HISTORY;
-        AppMenuItem miHistory = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
-        menu.add(miHistory);
-        miHistory.addActionListener(e -> showHistory());
+        menu.add(SwingUtils.getLineGraphMenu(this, graphPanel, logger));
         menu.addSeparator();
         uin = UIName.MI_HELP;
         AppMenuItem miHelp = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
@@ -279,7 +286,7 @@ public class MatchPair extends AppFrame {
 
         SwingUtils.updateUIFor(menuBar);
 
-        componentsToColor = new JComponent[]{btnUser, txtUser, btnStart, btnPause, lblLevel, lblTime, lblScore,
+        componentsToColor = new JComponent[]{btnUser, txtUser, btnStart, btnPause, btnHistory, lblLevel, lblTime, lblScore,
                 menuBar, menu, btnExit, tblTopScore.getTableHeader(), tblRecentScore.getTableHeader(),
                 tblUsers.getTableHeader()
         };
@@ -299,14 +306,11 @@ public class MatchPair extends AppFrame {
 
     private void showHistory() {
         if (graphPanel != null) {
-            historyPanel.remove(graphPanel);
+            graphPanel.setData(prepareGraphData(getUserRecentScores()));
+            setGraphColors();
+            graphPanel.setToolTipColorsNFont(fg, bg, SwingUtils.getNewFont(getFont(), fontName));
+            showScreen(GameScreens.history);
         }
-        graphPanel = new LineGraphPanel(prepareGraphData(getUserRecentScores()));
-        graphPanel.setMargin(100);
-        setGraphColors();
-        historyPanel.add(graphPanel);
-        graphPanel.setToolTipColorsNFont(fg, bg, SwingUtils.getNewFont(getFont(), fontName));
-        showScreen(GameScreens.history);
     }
 
     private void setGraphColors() {
@@ -630,8 +634,10 @@ public class MatchPair extends AppFrame {
     }
 
     private void showWrongMatchScreen() {
-        lblWaitTime.setText("Wrong");
         setWaitScreen();
+        lblWaitTime.setBackground(Color.red);
+        lblWaitTime.setForeground(Color.white);
+        lblWaitTime.setText("Wrong");
         showScreen(GameScreens.wrong);
         // this wont impact by cancelTimers bcoz gameTime not changed
         gameWaitTime = 0;
@@ -874,7 +880,7 @@ public class MatchPair extends AppFrame {
     private void setWaitScreen() {
         SwingUtils.changeFont(lblWaitTime, gameBtnFontSize);
         Arrays.stream(waitLblsPanel.getComponents()).forEach(c ->
-                SwingUtils.setComponentColor((JComponent) c, null, fg));
+                SwingUtils.setComponentColor((JComponent) c, UIConstants.ORIG_COLOR, fg));
     }
 
     private void setGameScreen() {
@@ -985,12 +991,19 @@ public class MatchPair extends AppFrame {
         return getUsernameForMap(username);
     }
 
+    // This will be called by reflection from SwingUI jar
+    public void lineGraphChanged(LineGraphPanel graphPanel, String methodName, Boolean value) {
+        logger.info("lineGraphChanged: " + graphPanel);
+        graphPanel.repaint();
+    }
+
+    // This will be called by reflection from SwingUI jar
+    public void lineGraphFailed(LineGraphPanel graphPanel, String methodName, Boolean value) {
+        logger.error("lineGraphFailed: " + graphPanel);
+    }
+
     public void gameCompletedActions() {
-        if (getUserRecentScores().size() > 1) {
-            showHistory();
-        } else {
-            showScreen(GameScreens.help);
-        }
+        showHistory();
         cancelTimers();
     }
 
@@ -1052,6 +1065,7 @@ public class MatchPair extends AppFrame {
     private void setUsernameFromUser() {
         setUsername(tblUsers.getValueAt(tblUsers.getSelectedRow(), 1).toString());
         if (isScreenVisible(GameScreens.history)) {
+            // to refresh
             showHistory();
         }
     }
@@ -1160,7 +1174,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void setControlsToEnable() {
-        Component[] components = {menuBar, menu, tblUserMISetUser};
+        Component[] components = {menuBar, menu, btnHistory, tblUserMISetUser};
         setComponentToEnable(components);
         setComponentContrastToEnable(new Component[]{btnPause});
         enableControls();
@@ -1199,4 +1213,15 @@ public class MatchPair extends AppFrame {
         return username;
     }
 
+    public String getLinesJoinPoint() {
+        return graphPanel.isLinesJoinPoint() + "";
+    }
+
+    public String getDrawBaseLines() {
+        return graphPanel.isDrawBaseLines() + "";
+    }
+
+    public String getFirstPointOnBaseLine() {
+        return graphPanel.isFirstPointOnBaseLine() + "";
+    }
 }
