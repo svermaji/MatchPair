@@ -49,7 +49,7 @@ public class MatchPair extends AppFrame {
      * e.g. if enum is Xyz then when storing getXyz will be called
      */
     public enum Configs {
-        AppFontSize, GameBtnFontSize, CNFIdx, Username, LinesJoinPoint,
+        AppFontSize, GameBtnFontSize, CNFIdx, Username, LineJoinsPointsCenter,
         DrawBaseLines, FirstPointOnBaseLine
     }
 
@@ -223,7 +223,7 @@ public class MatchPair extends AppFrame {
         historyPanel.setName("History Panel");
         graphPanel = new LineGraphPanel();
         graphPanel.setMargin(100);
-        graphPanel.setLinesJoinPoint(configs.getBooleanConfig(Configs.LinesJoinPoint.name()));
+        graphPanel.setLineJoinsPointsCenter(configs.getBooleanConfig(Configs.LineJoinsPointsCenter.name()));
         graphPanel.setFirstPointOnBaseLine(configs.getBooleanConfig(Configs.FirstPointOnBaseLine.name()));
         graphPanel.setDrawBaseLines(configs.getBooleanConfig(Configs.DrawBaseLines.name()));
         historyPanel.add(graphPanel);
@@ -1214,7 +1214,7 @@ public class MatchPair extends AppFrame {
     }
 
     public String getLinesJoinPoint() {
-        return graphPanel.isLinesJoinPoint() + "";
+        return graphPanel.isLineJoinsPointsCenter() + "";
     }
 
     public String getDrawBaseLines() {
