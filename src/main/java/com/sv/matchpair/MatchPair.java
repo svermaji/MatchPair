@@ -1213,7 +1213,7 @@ public class MatchPair extends AppFrame {
         return username;
     }
 
-    public String getLinesJoinPoint() {
+    public String getLineJoinsPointsCenter() {
         return graphPanel.isLineJoinsPointsCenter() + "";
     }
 
