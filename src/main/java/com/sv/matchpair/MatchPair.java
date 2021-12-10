@@ -221,8 +221,9 @@ public class MatchPair extends AppFrame {
         waitPanel.setName("Wait Panel");
         historyPanel = new AppPanel(new BorderLayout());
         historyPanel.setName("History Panel");
-        graphPanel = new LineGraphPanel();
+        graphPanel = new LineGraphPanel(logger);
         graphPanel.setMargin(100);
+        graphPanel.setyAxisGap(300);
         graphPanel.setLineJoinsPointsCenter(configs.getBooleanConfig(Configs.LineJoinsPointsCenter.name()));
         graphPanel.setFirstPointOnBaseLine(configs.getBooleanConfig(Configs.FirstPointOnBaseLine.name()));
         graphPanel.setDrawBaseLines(configs.getBooleanConfig(Configs.DrawBaseLines.name()));
@@ -409,7 +410,7 @@ public class MatchPair extends AppFrame {
         }
 
         boolean result = toShow != null && toShow.isVisible();
-        logger.info("isScreenVisible screen for " + Utils.addBraces(nm) + " is " + Utils.addBraces(result));
+        //logger.info("isScreenVisible screen for " + Utils.addBraces(nm) + " is " + Utils.addBraces(result));
         return result;
     }
 
