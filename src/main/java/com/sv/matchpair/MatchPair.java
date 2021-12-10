@@ -439,10 +439,18 @@ public class MatchPair extends AppFrame {
         lblWaitTime.setPreferredSize(waitPanel.getPreferredSize());
     }
 
+    // call by reflection
+    public void dblClickUser(AppTable table, Object[] params) {
+        int selRow = table.getSelectedRow();
+        String un = table.getValueAt(selRow, 1).toString();
+        setUsername(un);
+    }
+
     private void setAllTables() {
         String[] topScoreCols = new String[]{"Top Score", "Date", "Accuracy", "Level"};
         String[] recentScoreCols = new String[]{"Recent Score", "Date", "Accuracy", "Level"};
         String[] userCols = new String[]{"#", "User", "Top Score"};
+        String[] userColsTT = new String[]{"#", "Set user by double click or right click", "Top Score"};
 
         topScoreModel = SwingUtils.getTableModel(topScoreCols);
         recentScoreModel = SwingUtils.getTableModel(recentScoreCols);
@@ -454,7 +462,8 @@ public class MatchPair extends AppFrame {
 
         tblTopScore.setTableHeader(new AppTableHeaderToolTip(tblTopScore.getColumnModel(), topScoreCols));
         tblRecentScore.setTableHeader(new AppTableHeaderToolTip(tblRecentScore.getColumnModel(), recentScoreCols));
-        tblUsers.setTableHeader(new AppTableHeaderToolTip(tblUsers.getColumnModel(), userCols));
+        tblUsers.setTableHeader(new AppTableHeaderToolTip(tblUsers.getColumnModel(), userColsTT));
+        tblUsers.addDblClickOnRow(this, new Object[]{}, "dblClickUser");
 
         UIName uin = UIName.MI_SETUSER;
         tblUserMISetUser = new AppMenuItem(uin.name, uin.mnemonic);
@@ -1064,10 +1073,6 @@ public class MatchPair extends AppFrame {
 
     private void setUsernameFromUser() {
         setUsername(tblUsers.getValueAt(tblUsers.getSelectedRow(), 1).toString());
-        if (isScreenVisible(GameScreens.history)) {
-            // to refresh
-            showHistory();
-        }
     }
 
     private void setUsername(String un) {
@@ -1077,6 +1082,10 @@ public class MatchPair extends AppFrame {
         doNotSaveUsername();
         storeAndLoad();
         updateUNAutoComplete();
+        if (isScreenVisible(GameScreens.history)) {
+            // to refresh
+            showHistory();
+        }
     }
 
     private void saveUsername() {
