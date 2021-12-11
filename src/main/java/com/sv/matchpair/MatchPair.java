@@ -978,6 +978,7 @@ public class MatchPair extends AppFrame {
         loadTableData();
         gameStatus = Status.STOP;
 
+        Arrays.stream(btnsPanel.getComponents()).forEach(c -> c.setEnabled(false));
         for (Map.Entry<Character, List<GameButton>> entry : gamePairs.entrySet()) {
             List<GameButton> v = entry.getValue();
             GameButton b1 = v.get(0), b2 = v.get(1);
@@ -1013,6 +1014,7 @@ public class MatchPair extends AppFrame {
     }
 
     public void gameCompletedActions() {
+        Arrays.stream(btnsPanel.getComponents()).forEach(c -> c.setEnabled(true));
         showHistory();
         cancelTimers();
     }
