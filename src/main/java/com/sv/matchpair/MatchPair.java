@@ -68,7 +68,7 @@ public class MatchPair extends AppFrame {
     private Map<Character, List<GameButton>> gamePairs;
 
     private JPopupMenu tblUsersPopupMenu = new JPopupMenu();
-    private AppMenuItem tblUserMISetUser;
+    private AppMenuItem tblUserMISetUser, tblUserMIDelUser;
     private TitledBorder titledBorder;
     private JMenuBar menuBar;
     private AppMenu menu;
@@ -275,6 +275,11 @@ public class MatchPair extends AppFrame {
         menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
         menu.add(SwingUtils.getLineGraphMenu(this, graphPanel, logger));
         menu.addSeparator();
+        uin = UIName.MI_CHANGEPWD;
+        AppMenuItem miChangePwd = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
+        menu.add(miChangePwd);
+        miChangePwd.addActionListener(e -> showChangePwdScreen());
+        menu.addSeparator();
         uin = UIName.MI_HELP;
         AppMenuItem miHelp = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
         menu.add(miHelp);
@@ -469,7 +474,11 @@ public class MatchPair extends AppFrame {
         UIName uin = UIName.MI_SETUSER;
         tblUserMISetUser = new AppMenuItem(uin.name, uin.mnemonic);
         tblUserMISetUser.addActionListener(evt -> setUsernameFromUser());
+        uin = UIName.MI_DELUSER;
+        tblUserMIDelUser = new AppMenuItem(uin.name, uin.mnemonic);
+        tblUserMIDelUser.addActionListener(evt -> showLockScreen());
         tblUsersPopupMenu.add(tblUserMISetUser);
+        tblUsersPopupMenu.add(tblUserMIDelUser);
         // sets the popup menu for the table
         tblUsers.setComponentPopupMenu(tblUsersPopupMenu);
         tblUsers.setOpaque(true);
@@ -494,6 +503,30 @@ public class MatchPair extends AppFrame {
         tblPanel.add(new JScrollPane(tblRecentScore));
         tblPanel.add(new JScrollPane(tblUsers));
         tblPanel.setBorder(EMPTY_BORDER);
+    }
+
+    public void authenticationSuccess() {
+        deleteUser();
+    }
+
+    public void pwdChangedStatus(boolean pwdChanged) {
+        logger.info("password change status [" + pwdChanged + "]");
+    }
+
+    private void deleteUser() {
+        logger.info("in delete user");
+        String un = tblUsers.getValueAt(tblUsers.getSelectedRow(), 1).toString();
+        if (Utils.hasValue(un)) {
+            logger.info("Deleting user [" + un + "]");
+            removeFromGameScores(un);
+        }
+    }
+
+    private void removeFromGameScores(String k) {
+        if (gameScores.containsKey(getUsernameForMap(k))) {
+            gameScores.remove(getUsernameForMap(k));
+            loadTableData();
+        }
     }
 
     private void loadTableData() {
@@ -808,6 +841,7 @@ public class MatchPair extends AppFrame {
         logger.info("Application font changed to " + Utils.addBraces(fs));
 
         SwingUtils.changeFont(tblUserMISetUser, appFontSize);
+        SwingUtils.changeFont(tblUserMIDelUser, appFontSize);
         // calling to change tooltip font
         changeAppColor();
     }

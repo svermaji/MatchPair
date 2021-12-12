@@ -22,6 +22,7 @@
 * User can start game that is for 80 seconds
 * Shows graph with tooltip and options to change it
 * User can be changed from existing list using right click menu or double click
+* User can be deleted but needs admin password which can be setup from menu
 * At the end of game, next matching pair will be highlighted
 * If wrongly clicked if will warn user
 * Game rule - in each level you need to match 3 pairs and level will increase.
