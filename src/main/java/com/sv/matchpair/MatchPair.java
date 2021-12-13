@@ -1009,6 +1009,8 @@ public class MatchPair extends AppFrame {
         btnStart.setText(UIName.BTN_START.name);
         enableControls();
         getUserGameScores().addScore(new GameScore(gameScore, Utils.getFormattedDate(), gameAccuracy, gameLevel));
+        // to optimize this can be save on exit but for now saving game progress on complete
+        saveScores();
         loadTableData();
         gameStatus = Status.STOP;
 
@@ -1185,7 +1187,8 @@ public class MatchPair extends AppFrame {
      */
     private void exitForm() {
         stopGame();
-        saveScores();
+        // take it to game completed event
+        //saveScores();
         cancelTimers();
         configs.saveConfig(this);
         setVisible(false);
