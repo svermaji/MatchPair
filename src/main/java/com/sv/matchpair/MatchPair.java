@@ -61,13 +61,26 @@ public class MatchPair extends AppFrame {
         help, wait, wrong, game, history, none
     }
 
+    public enum AppPaths {
+        scoresLoc ("./src/main/resources/scores.config"),
+        gameConfigsLoc ("./src/main/resources/game-configs"),
+        openHelpLoc ("./src/main/resources/show-help.bat"),
+        gameSeqLoc ("./src/main/resources/game-sequences.config");
+
+        String val;
+
+        AppPaths(String val) {
+            this.val = val;
+        }
+    }
+
     private MyLogger logger;
     private DefaultConfigs configs;
     private Map<String, GameInfo> gameInfos;
     private Map<String, GameScores> gameScores;
     private Map<Character, List<GameButton>> gamePairs;
 
-    private JPopupMenu tblUsersPopupMenu = new JPopupMenu();
+    private final JPopupMenu tblUsersPopupMenu = new JPopupMenu();
     private AppMenuItem tblUserMISetUser, tblUserMIDelUser;
     private TitledBorder titledBorder;
     private JMenuBar menuBar;
@@ -88,7 +101,7 @@ public class MatchPair extends AppFrame {
     private GameInfo gameInfo;
 
     private Status gameStatus = Status.NOT_STARTED;
-    private String username, fontName, topScores, recentScores;
+    private String username, fontName;
     private int gameLevel = 1, gameScore, gameAccuracy, cnfIdx = 0, gameBtnFontSize,
             totalCorrectPairs, totalWrongPairs;
 
@@ -96,12 +109,7 @@ public class MatchPair extends AppFrame {
     private final ColorsNFonts[] APP_COLORS = SwingUtils.getFilteredCnF(false);
     private final CellRendererCenterAlign CENTER_RENDERER = new CellRendererCenterAlign();
     private final String TITLE_HEADING = "Controls";
-    private final String GAME_SCORE_LOC = "./src/main/resources/scores.config";
-    private final String GAME_CONFIGS_LOC = "./src/main/resources/game-configs";
-    private final String OPEN_HELP_LOC = "./src/main/resources/show-help.bat";
-    private final String GAME_SEQ_LOC = "./src/main/resources/game-sequences.config";
     private final int MAX_NAME = 12;
-    private final int GRAPH_POINT_LIMIT = 10;
 
     private static int gamePairMatched = 0;
     private static int gameTime = 0, gameWaitTime = 0;
@@ -110,9 +118,6 @@ public class MatchPair extends AppFrame {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new MatchPair().initComponents());
-        /*MatchPair mp = new MatchPair();
-        mp.username = "default";
-        mp.setScoreFile();*/
     }
 
     public MatchPair() {
@@ -335,10 +340,10 @@ public class MatchPair extends AppFrame {
     private List<LineGraphPanelData> prepareGraphData(List<GameScore> scores) {
         List<LineGraphPanelData> data = new ArrayList<>();
         List<GameScore> scoresForGraph = new ArrayList<>();
-        scores.stream().limit(GRAPH_POINT_LIMIT).forEach(scoresForGraph::add);
+        scores.stream().limit(GRAPH_POINTS_TO_DRAW_LIMIT).forEach(scoresForGraph::add);
         Collections.reverse(scoresForGraph);
         // returning last GRAPH_POINT_LIMIT only
-        scoresForGraph.stream().limit(GRAPH_POINT_LIMIT).forEach(s ->
+        scoresForGraph.stream().limit(GRAPH_POINTS_TO_DRAW_LIMIT).forEach(s ->
                 data.add(new LineGraphPanelData(s.getScoreAsInt(), s.getDate() + "", true)));
         return data;
     }
@@ -420,7 +425,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void showHelpInBrowser() {
-        new RunCommand(new String[]{OPEN_HELP_LOC + SPACE + Utils.getCurrentDir()}, logger);
+        new RunCommand(new String[]{AppPaths.openHelpLoc.val + SPACE + Utils.getCurrentDir()}, logger);
     }
 
     private void showHelp() {
@@ -705,7 +710,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void loadGameScores() {
-        Properties props = Utils.readPropertyFile(GAME_SCORE_LOC, logger);
+        Properties props = Utils.readPropertyFile(AppPaths.scoresLoc.val, logger);
         props.stringPropertyNames().forEach(k -> {
             if (k.endsWith(PROP_SCORES_SUFFIX)) {
                 String v = props.getProperty(k);
@@ -760,7 +765,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void loadGameSequences() {
-        List<String> lines = Utils.readFile(GAME_SEQ_LOC, logger);
+        List<String> lines = Utils.readFile(AppPaths.gameSeqLoc.val, logger);
         gameSequences = new int[lines.size()][];
         AtomicInteger a = new AtomicInteger();
         lines.forEach(l -> gameSequences[a.getAndIncrement()] =
@@ -769,7 +774,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void loadGameConfigs() {
-        List<String> paths = Utils.listFiles(GAME_CONFIGS_LOC, logger);
+        List<String> paths = Utils.listFiles(AppPaths.gameConfigsLoc.val, logger);
         paths.forEach(p -> {
             GameInfo gi = makeGameInfoObj(Utils.readPropertyFile(p, logger));
             gameInfos.put(gi.getGameLevel(), gi);
@@ -1203,7 +1208,7 @@ public class MatchPair extends AppFrame {
         Properties prop = new Properties();
         gameScores.values().forEach(gs ->
                 prop.setProperty(gs.getUsername() + PROP_SCORES_SUFFIX, prepareScoreCsv(gs.getRecentScores())));
-        Utils.saveProperties(prop, GAME_SCORE_LOC, logger);
+        Utils.saveProperties(prop, AppPaths.scoresLoc.val, logger);
     }
 
     private String prepareScoreCsv(List<GameScore> score) {

@@ -9,6 +9,7 @@ public final class AppConstants {
     private AppConstants() {
     }
 
+    public static final int GRAPH_POINTS_TO_DRAW_LIMIT =10;
     public static final int WRONG_PAIR_MSG_TIME = 300; // milliseconds
     public static final int GAME_WAIT_TIME_SEC = 3;
     public static final int ALARM_TIME_SEC = 5;
