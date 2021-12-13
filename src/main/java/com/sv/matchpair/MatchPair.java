@@ -525,7 +525,7 @@ public class MatchPair extends AppFrame {
     private void removeFromGameScores(String k) {
         if (gameScores.containsKey(getUsernameForMap(k))) {
             gameScores.remove(getUsernameForMap(k));
-            loadTableData();
+            populateUsersTopScore(userModel);
         }
     }
 
