@@ -1119,6 +1119,7 @@ public class MatchPair extends AppFrame {
     private void setUsername(String un) {
         username = Utils.convertToTitleCase(un);
         btnUser.setText(UIName.BTN_USER.name + SPACE + username);
+        txtUser.setText(username);
         // just to hide controls
         doNotSaveUsername();
         storeAndLoad();
@@ -1189,8 +1190,7 @@ public class MatchPair extends AppFrame {
      */
     private void exitForm() {
         stopGame();
-        // take it to game completed event
-        //saveScores();
+        saveScores();
         cancelTimers();
         configs.saveConfig(this);
         setVisible(false);
