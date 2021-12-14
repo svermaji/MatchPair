@@ -25,6 +25,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Timer;
 import java.util.*;
@@ -1253,7 +1254,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void setControlsToEnable() {
-        Component[] components = {menuBar, menu, btnHistory, tblUserMISetUser};
+        Component[] components = {menuBar, menu, btnHistory, btnUser, tblUsers, tblUsersPopupMenu};
         setComponentToEnable(components);
         setComponentContrastToEnable(new Component[]{btnPause});
         enableControls();
