@@ -54,7 +54,7 @@ public class MatchPair extends AppFrame {
     }
 
     public enum Status {
-        NOT_STARTED, START, PAUSED, STOP
+        NOT_STARTED, START, PAUSED, AUTO_PAUSED, STOP
     }
 
     public enum GameScreens {
@@ -62,10 +62,10 @@ public class MatchPair extends AppFrame {
     }
 
     public enum AppPaths {
-        scoresLoc ("./src/main/resources/scores.config"),
-        gameConfigsLoc ("./src/main/resources/game-configs"),
-        openHelpLoc ("./src/main/resources/show-help.bat"),
-        gameSeqLoc ("./src/main/resources/game-sequences.config");
+        scoresLoc("./src/main/resources/scores.config"),
+        gameConfigsLoc("./src/main/resources/game-configs"),
+        openHelpLoc("./src/main/resources/show-help.bat"),
+        gameSeqLoc("./src/main/resources/game-sequences.config");
 
         String val;
 
@@ -141,6 +141,10 @@ public class MatchPair extends AppFrame {
 
         super.setLogger(logger);
         CENTER_RENDERER.setShowSameTipOnRow(false);
+
+        List<WindowChecks> windowChecks = new ArrayList<>();
+        windowChecks.add(WindowChecks.WINDOW_ACTIVE);
+        applyWindowActiveCheck(windowChecks.toArray(new WindowChecks[0]));
 
         appFontSize = Utils.validateInt(configs.getIntConfig(Configs.AppFontSize.name()),
                 DEFAULT_APPFONTSIZE, MIN_APPFONTSIZE, MAX_APPFONTSIZE);
@@ -448,6 +452,23 @@ public class MatchPair extends AppFrame {
         lblWaitTime.setHorizontalAlignment(SwingConstants.CENTER);
         lblWaitTime.setVerticalAlignment(SwingConstants.CENTER);
         lblWaitTime.setPreferredSize(waitPanel.getPreferredSize());
+    }
+
+    public void appWindowGainedFocus() {
+        logger.info("window focus gained");
+        if (gameStatus == Status.AUTO_PAUSED) {
+            // as we are calling pauseGame this will start the game
+            gameStatus = Status.PAUSED;
+            pauseGame();
+        }
+    }
+
+    public void appWindowLostFocus() {
+        logger.info("window focus lost");
+        if (gameStatus == Status.START) {
+            gameStatus = Status.AUTO_PAUSED;
+            pauseGame();
+        }
     }
 
     // call by reflection
@@ -1101,7 +1122,7 @@ public class MatchPair extends AppFrame {
     }
 
     public boolean isGamePaused() {
-        return gameStatus == Status.PAUSED;
+        return gameStatus == Status.PAUSED || gameStatus == Status.AUTO_PAUSED;
     }
 
     private void createBorders() {
@@ -1179,7 +1200,9 @@ public class MatchPair extends AppFrame {
     }
 
     private void pauseGame() {
-        gameStatus = gameStatus == Status.PAUSED ? Status.START : Status.PAUSED;
+        if (gameStatus != Status.AUTO_PAUSED) {
+            gameStatus = gameStatus == Status.PAUSED ? Status.START : Status.PAUSED;
+        }
         if (isGamePaused()) {
             btnPause.setText("Resume");
             showScreen(GameScreens.none);
