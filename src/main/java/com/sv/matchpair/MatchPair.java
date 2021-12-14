@@ -744,7 +744,7 @@ public class MatchPair extends AppFrame {
                 }
             }
         });
-        logger.info("All gameScores = " + gameScores);
+        //logger.info("All players scores = " + gameScores);
     }
 
     private GameScores getGameScores(String user, String gameScoreCsv) {
@@ -959,9 +959,21 @@ public class MatchPair extends AppFrame {
     private void setGameScreen() {
         createButtons();
         showScreen(GameScreens.game);
+        makeButtonsSquare();
         Timer t = new Timer();
         t.scheduleAtFixedRate(new GameTimerTask(this), 0, SEC_1);
         TIMERS.add(t);
+    }
+
+    private void makeButtonsSquare() {
+        // setting hgap and vgap to make game 500x500
+        int w = btnsPanel.getWidth();
+        int h = btnsPanel.getHeight();
+        int hgap = (w - BTNS_WIDTH) / 2;
+        int vgap = (h - BTNS_HEIGHT) / 2;
+        btnsPanel.setBorder(new EmptyBorder(new Insets(vgap, hgap, vgap, hgap)));
+        logger.info("Setting hgap/vgap [" + hgap + F_SLASH + vgap
+                + "] for buttons of width/height [" + w + F_SLASH + h + "]");
     }
 
     private void resetGame() {
@@ -990,9 +1002,6 @@ public class MatchPair extends AppFrame {
         }
         btnsPanel.setLayout(new GridLayout(rows, cols));
 
-        int gap = 170;
-        int vgap = 130;
-        btnsPanel.setBorder(new EmptyBorder(new Insets(vgap, gap, vgap, gap)));
         // randomize buttons
         List<GameButton> gameBtns = prepareGameButtons(gameInfo);
         List<GameButton> gameBtnsRandomize = new ArrayList<>(gameBtns);

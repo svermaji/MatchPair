@@ -9,7 +9,9 @@ public final class AppConstants {
     private AppConstants() {
     }
 
-    public static final int GRAPH_POINTS_TO_DRAW_LIMIT =10;
+    public static final int BTNS_WIDTH = 300;
+    public static final int BTNS_HEIGHT = 300;
+    public static final int GRAPH_POINTS_TO_DRAW_LIMIT = 10;
     public static final int WRONG_PAIR_MSG_TIME = 300; // milliseconds
     public static final int GAME_WAIT_TIME_SEC = 3;
     public static final int ALARM_TIME_SEC = 5;
@@ -31,5 +33,5 @@ public final class AppConstants {
     };
 
     public static final Color GAME_BTN_COLOR = Color.white;
-    public static final Color GAME_BTN_CLICK_COLOR = new Color(255,228,181);
+    public static final Color GAME_BTN_CLICK_COLOR = new Color(255, 228, 181);
 }
