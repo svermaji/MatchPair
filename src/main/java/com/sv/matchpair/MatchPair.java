@@ -1263,7 +1263,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void setControlsToEnable() {
-        Component[] components = {menuBar, menu, btnHistory, btnUser, tblUsers, tblUsersPopupMenu};
+        Component[] components = {menuBar, menu, btnHistory, btnUser, tblUsers, tblUserMISetUser, tblUserMIDelUser};
         setComponentToEnable(components);
         setComponentContrastToEnable(new Component[]{btnPause});
         enableControls();
