@@ -42,6 +42,6 @@
 * Application Game screen - Smileys<br>
 ![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-15-dec-2021-smileys.png)
 * Application Home screen<br>
-![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-home-8-dec-2021.png)
+![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-home-15-dec-2021.png)
 * Application Graph screen<br>
-![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-graph-8-dec-2021.png)
+![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-graph-15-dec-2021.png)
