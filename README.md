@@ -23,6 +23,7 @@
 * Shows graph with tooltip and options to change it
 * User can be changed from existing list using right click menu or double click
 * User can be deleted but needs admin password which can be setup from menu
+* User can be select pair types - Characters, Symbols or Smileys
 * Game will be auto paused/resume on window lost/gain focus
 * At the end of game, next matching pair will be highlighted
 * If wrongly clicked if will warn user
@@ -34,8 +35,12 @@
 * Username can be set and score per user will be stored along with high scores.
 
 #### Application Images
-* Application Present Image - Game screen<br>
-![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-14-dec-2021.png)
+* Application Game screen - Characters<br>
+![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-15-dec-2021-chars.png)
+* Application Game screen - Symbols<br>
+![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-15-dec-2021-symbols.png)
+* Application Game screen - Smileys<br>
+![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-15-dec-2021-smileys.png)
 * Application Home screen<br>
 ![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-home-8-dec-2021.png)
 * Application Graph screen<br>

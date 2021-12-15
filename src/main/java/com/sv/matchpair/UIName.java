@@ -14,10 +14,14 @@ public enum UIName {
     LBL_SCORE("Score", 'l', "Score of the game"),
     LBL_TIME("Time", 'm', "Time remaining of the game"),
     MENU("Settings", 'g', "Different system settings"),
+    MI_PAIR_TYPES("Pair Types", 'i', "Choose pair types in game"),
+    MI_PT_CHARS("Characters", 'c', "A to Z and 1 to 9 characters"),
+    MI_PT_SYMBOLS("Symbols", 'o', "Mixed symbols"),
+    MI_PT_SMILEYS("Smileys", 'm', "Smileys"),
     MI_SETUSER("Set user", 't', "Set user"),
     MI_DELUSER("Delete user", 'e', "Delete user - need password"),
     BTN_HISTORY("History", 'y', "Scores history"),
-    MI_CHANGEPWD("Change password", 'w', "Change or set password"),
+    MI_CHANGEPWD("Change password", 'd', "Change or set password"),
     MI_HELP("Help", 'h', "Help about game"),
     MI_HELP_BROWSER("Help in browser", 'w', "Open help in browser");
 

@@ -25,7 +25,6 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Timer;
 import java.util.*;
@@ -51,7 +50,11 @@ public class MatchPair extends AppFrame {
      */
     public enum Configs {
         AppFontSize, GameBtnFontSize, CNFIdx, Username, LineJoinsPointsCenter,
-        DrawBaseLines, FirstPointOnBaseLine
+        DrawBaseLines, FirstPointOnBaseLine, PairType
+    }
+
+    public enum PairType {
+        Chars, Symbols, Smileys
     }
 
     public enum Status {
@@ -79,7 +82,7 @@ public class MatchPair extends AppFrame {
     private DefaultConfigs configs;
     private Map<String, GameInfo> gameInfos;
     private Map<String, GameScores> gameScores;
-    private Map<Character, List<GameButton>> gamePairs;
+    private Map<String, List<GameButton>> gamePairs;
 
     private final JPopupMenu tblUsersPopupMenu = new JPopupMenu();
     private AppMenuItem tblUserMISetUser, tblUserMIDelUser;
@@ -102,6 +105,7 @@ public class MatchPair extends AppFrame {
     private GameInfo gameInfo;
 
     private Status gameStatus = Status.NOT_STARTED;
+    private PairType pairType;
     private String username, fontName;
     private int gameLevel = 1, gameScore, gameAccuracy, cnfIdx = 0, gameBtnFontSize,
             totalCorrectPairs, totalWrongPairs;
@@ -290,6 +294,29 @@ public class MatchPair extends AppFrame {
         menu.add(miChangePwd);
         miChangePwd.addActionListener(e -> showChangePwdScreen());
         menu.addSeparator();
+        uin = UIName.MI_PAIR_TYPES;
+        AppMenu miPT = new AppMenu(uin.name, uin.mnemonic, uin.tip);
+        uin = UIName.MI_PT_CHARS;
+        AppRadioButtonMenuItem miChars = new AppRadioButtonMenuItem(
+                uin.name, isPairType(PairType.Chars), uin.mnemonic, uin.tip);
+        miChars.addActionListener(e -> setPairType(PairType.Chars));
+        miPT.add(miChars);
+        uin = UIName.MI_PT_SYMBOLS;
+        AppRadioButtonMenuItem miSymbols = new AppRadioButtonMenuItem(
+                uin.name, isPairType(PairType.Symbols), uin.mnemonic, uin.tip);
+        miSymbols.addActionListener(e -> setPairType(PairType.Symbols));
+        miPT.add(miSymbols);
+        uin = UIName.MI_PT_SMILEYS;
+        AppRadioButtonMenuItem miSmileys = new AppRadioButtonMenuItem(
+                uin.name, isPairType(PairType.Smileys), uin.mnemonic, uin.tip);
+        miSmileys.addActionListener(e -> setPairType(PairType.Smileys));
+        miPT.add(miSmileys);
+        ButtonGroup bg = new ButtonGroup();
+        bg.add(miChars);
+        bg.add(miSymbols);
+        bg.add(miSmileys);
+        menu.add(miPT);
+        menu.addSeparator();
         uin = UIName.MI_HELP;
         AppMenuItem miHelp = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
         menu.add(miHelp);
@@ -318,6 +345,18 @@ public class MatchPair extends AppFrame {
         showHelp();
 
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
+    }
+
+    private boolean isCharsPairType() {
+        return pairType == PairType.Chars;
+    }
+
+    private boolean isPairType(PairType pt) {
+        return pairType == pt;
+    }
+
+    private void setPairType(PairType pt) {
+        pairType = pt;
     }
 
     private void showHistory() {
@@ -620,13 +659,16 @@ public class MatchPair extends AppFrame {
 
         int total = gi.getRows() * gi.getCols();
         List<GameButton> list = new ArrayList<>(total);
-        List<Character> chList = new ArrayList<>(total);
+        List<String> textList = new ArrayList<>(total);
         int elem = total - PAIRS_COUNT;
         Random rand = new Random();
-        while (chList.size() < elem) {
-            Character ch = AppConstants.GAME_CHARS[rand.nextInt(GAME_CHARS.length)];
-            if (!chList.contains(ch)) {
-                chList.add(ch);
+        String[] arr = getGameChars();
+        int arrayLen = arr.length;
+        logger.info("Shuffling from [" + arrayLen + "] characters of type [" + pairType.name() + "].");
+        while (textList.size() < elem) {
+            String ch = arr[rand.nextInt(arrayLen)];
+            if (!textList.contains(ch)) {
+                textList.add(ch);
             }
         }
         int x = 0;
@@ -636,12 +678,12 @@ public class MatchPair extends AppFrame {
             if (seqE < GAME_SEQ_LIMIT_MIN) {
                 i--;
             } else {
-                chList.add(x, chList.get(x));
-                gamePairs.put(chList.get(x), new ArrayList<>());
+                textList.add(x, textList.get(x));
+                gamePairs.put(textList.get(x), new ArrayList<>());
                 if (seqE > GAME_SEQ_LIMIT_MAX && i < PAIRS_COUNT - 1) {
-                    chList.add(x + 2, chList.get(x + 2));
+                    textList.add(x + 2, textList.get(x + 2));
                     i++;
-                    gamePairs.put(chList.get(x + 2), new ArrayList<>());
+                    gamePairs.put(textList.get(x + 2), new ArrayList<>());
                 }
                 x += seqE;
             }
@@ -649,17 +691,33 @@ public class MatchPair extends AppFrame {
         AtomicInteger k = new AtomicInteger();
         AtomicInteger t = new AtomicInteger();
         Color[] colors = gi.getColorsRandomly();
+        boolean charsPT = isCharsPairType();
         // first 3 element in sequence must be > 2
         Arrays.stream(seq).forEach(i -> {
             for (int j = 0; j < i; j++) {
-                list.add(new GameButton(chList.get(t.getAndIncrement()) + Constants.EMPTY,
-                        colors[k.intValue()], this));
+                String text = textList.get(t.getAndIncrement());
+                if (!charsPT) {
+                    text = Utils.getUnicodeStr(text);
+                }
+                list.add(new GameButton(text, colors[k.intValue()], this));
             }
-            //todo chk why some time game reloads and try to show next pair
             k.getAndIncrement();
         });
-
+        System.out.println("btns");
         return list;
+    }
+
+    private String[] getGameChars() {
+        String[] arr = GAME_CHARS;
+        switch (pairType) {
+            case Symbols:
+                arr = GAME_SYMBOLS;
+                break;
+            case Smileys:
+                arr = GAME_SMILEYS;
+                break;
+        }
+        return arr;
     }
 
     public synchronized void checkGameButton(GameButton gb) {
@@ -839,9 +897,15 @@ public class MatchPair extends AppFrame {
             username = "default";
         }
         gameBtnFontSize = configs.getIntConfig(Configs.GameBtnFontSize.name());
+        String ptCfg = configs.getConfig(Configs.PairType.name());
+        if (!Utils.hasValue(ptCfg)) {
+            ptCfg = PairType.Chars.name();
+        }
+        pairType = PairType.valueOf(ptCfg);
         logger.info("All configs: cnfIdx [" + cnfIdx +
                 "], appFontSize [" + appFontSize +
                 "], gameBtnFontSize [" + gameBtnFontSize +
+                "], pairType [" + ptCfg +
                 "], username " + Utils.addBraces(username));
     }
 
@@ -1053,7 +1117,7 @@ public class MatchPair extends AppFrame {
         gameStatus = Status.STOP;
 
         Arrays.stream(btnsPanel.getComponents()).forEach(c -> c.setEnabled(false));
-        for (Map.Entry<Character, List<GameButton>> entry : gamePairs.entrySet()) {
+        for (Map.Entry<String, List<GameButton>> entry : gamePairs.entrySet()) {
             List<GameButton> v = entry.getValue();
             GameButton b1 = v.get(0), b2 = v.get(1);
             if (b1.isVisible() && b2.isVisible()) {
@@ -1316,5 +1380,9 @@ public class MatchPair extends AppFrame {
 
     public String getFirstPointOnBaseLine() {
         return graphPanel.isFirstPointOnBaseLine() + "";
+    }
+
+    public String getPairType() {
+        return pairType.name();
     }
 }
