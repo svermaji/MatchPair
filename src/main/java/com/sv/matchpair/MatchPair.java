@@ -387,8 +387,9 @@ public class MatchPair extends AppFrame {
         scores.stream().limit(GRAPH_POINTS_TO_DRAW_LIMIT).forEach(scoresForGraph::add);
         Collections.reverse(scoresForGraph);
         // returning last GRAPH_POINT_LIMIT only
-        scoresForGraph.stream().limit(GRAPH_POINTS_TO_DRAW_LIMIT).forEach(s ->
-                data.add(new LineGraphPanelData(s.getScoreAsInt(), s.getDate() + "", true)));
+        scoresForGraph.stream().limit(GRAPH_POINTS_TO_DRAW_LIMIT).forEach(s -> {
+            data.add(new LineGraphPanelData(s.getScoreAsInt(), s.shortString(), true, false));
+        });
         return data;
     }
 
@@ -703,7 +704,6 @@ public class MatchPair extends AppFrame {
             }
             k.getAndIncrement();
         });
-        System.out.println("btns");
         return list;
     }
 
@@ -831,7 +831,7 @@ public class MatchPair extends AppFrame {
         Arrays.stream(scoreDate).forEach(sd -> {
             if (Utils.hasValue(sd)) {
                 String[] arr = sd.split(AppConstants.SCORE_DATA_SEP_FOR_SPLIT);
-                list.add(new GameScore(arr[0], arr[1], arr[2], arr[3]));
+                list.add(new GameScore(arr[0], arr[1], arr[2], arr[3], arr[4]));
             }
         });
         return list;
@@ -1110,7 +1110,7 @@ public class MatchPair extends AppFrame {
         );
         btnStart.setText(UIName.BTN_START.name);
         enableControls();
-        getUserGameScores().addScore(new GameScore(gameScore, Utils.getFormattedDate(), gameAccuracy, gameLevel));
+        getUserGameScores().addScore(new GameScore(gameScore, Utils.getFormattedDate(), gameAccuracy, gameLevel, pairType.name().toLowerCase()));
         // to optimize this can be save on exit but for now saving game progress on complete
         saveScores();
         loadTableData();
@@ -1321,6 +1321,8 @@ public class MatchPair extends AppFrame {
                 .append(s.getAccuracy())
                 .append(SCORE_DATA_SEP)
                 .append(s.getLevel())
+                .append(SCORE_DATA_SEP)
+                .append(s.getType())
                 .append(SCORE_SEP)
         );
         return sb.toString();
