@@ -1182,8 +1182,12 @@ public class MatchPair extends AppFrame {
     private void storeAndLoad() {
         if (!gameScores.containsKey(getUsernameForMap())) {
             gameScores.put(getUsernameForMap(), new GameScores(username, null));
+            loadTableData();
+        } else {
+            // existing user changed, no need to load all users data
+            populateScoreTbl(getUserTopScores(), topScoreModel);
+            populateScoreTbl(getUserRecentScores(), recentScoreModel);
         }
-        loadTableData();
     }
 
     private void doNotSaveUsername() {

@@ -8,20 +8,26 @@ public final class GameScores {
 
     private final String username;
     private final List<GameScore> scores;
+    private List<GameScore> topScores;
 
     public GameScores(String username, List<GameScore> scores) {
         this.username = username;
         this.scores = scores == null ? new ArrayList<>() : scores;
+        updateTopScores();
     }
 
     public String getUsername() {
         return username;
     }
 
+    private List<GameScore> updateTopScores() {
+        topScores = new ArrayList<>(scores);
+        topScores.sort(Comparator.comparing(GameScore::getScoreAsInt).reversed());
+        return topScores;
+    }
+
     public List<GameScore> getTopScores() {
-        List<GameScore> topScore = new ArrayList<>(scores);
-        topScore.sort(Comparator.comparing(GameScore::getScoreAsInt).reversed());
-        return topScore;
+        return topScores;
     }
 
     public Integer getTopScore() {
@@ -34,6 +40,7 @@ public final class GameScores {
 
     public void addScore(GameScore gs) {
         scores.add(0, gs);
+        updateTopScores();
     }
 
     @Override
