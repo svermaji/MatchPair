@@ -11,9 +11,15 @@ import java.awt.event.MouseEvent;
 public final class GameButton extends AppButton {
 
     private int rowNum = -1, colNum = -1;
+    // as storing unicode for pairing we need code and not converted string
+    private String textCode;
 
     public GameButton(String text, Color fg, MatchPair matchPair) {
+        this (text, text, fg, matchPair);
+    }
+    public GameButton(String text, String textCode, Color fg, MatchPair matchPair) {
         super(text);
+        setTextCode(textCode);
         setForeground(fg);
         int gap = 20;
         setOpaque(true);
@@ -46,6 +52,14 @@ public final class GameButton extends AppButton {
         this.colNum = colNum;
     }
 
+    public String getTextCode() {
+        return textCode;
+    }
+
+    public void setTextCode(String textCode) {
+        this.textCode = textCode;
+    }
+
     public int getRowNum() {
         return rowNum;
     }
@@ -57,7 +71,8 @@ public final class GameButton extends AppButton {
     @Override
     public String toString() {
         return "{" +
-                "text=" + getText() +
+                "text:code=" + getText() +
+                ":" + getTextCode() +
                 ", row:col=" + rowNum +
                 ":" + colNum +
                 '}';

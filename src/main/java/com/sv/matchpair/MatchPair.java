@@ -299,17 +299,17 @@ public class MatchPair extends AppFrame {
         uin = UIName.MI_PT_CHARS;
         AppRadioButtonMenuItem miChars = new AppRadioButtonMenuItem(
                 uin.name, isPairType(PairType.Chars), uin.mnemonic, uin.tip);
-        miChars.addActionListener(e -> setPairType(PairType.Chars));
+        miChars.addActionListener(e -> changePairType(PairType.Chars));
         miPT.add(miChars);
         uin = UIName.MI_PT_SYMBOLS;
         AppRadioButtonMenuItem miSymbols = new AppRadioButtonMenuItem(
                 uin.name, isPairType(PairType.Symbols), uin.mnemonic, uin.tip);
-        miSymbols.addActionListener(e -> setPairType(PairType.Symbols));
+        miSymbols.addActionListener(e -> changePairType(PairType.Symbols));
         miPT.add(miSymbols);
         uin = UIName.MI_PT_SMILEYS;
         AppRadioButtonMenuItem miSmileys = new AppRadioButtonMenuItem(
                 uin.name, isPairType(PairType.Smileys), uin.mnemonic, uin.tip);
-        miSmileys.addActionListener(e -> setPairType(PairType.Smileys));
+        miSmileys.addActionListener(e -> changePairType(PairType.Smileys));
         miPT.add(miSmileys);
         ButtonGroup bg = new ButtonGroup();
         bg.add(miChars);
@@ -355,8 +355,9 @@ public class MatchPair extends AppFrame {
         return pairType == pt;
     }
 
-    private void setPairType(PairType pt) {
+    private void changePairType(PairType pt) {
         pairType = pt;
+        updateLevel();
     }
 
     private void showHistory() {
@@ -667,9 +668,9 @@ public class MatchPair extends AppFrame {
         int arrayLen = arr.length;
         logger.info("Shuffling from [" + arrayLen + "] characters of type [" + pairType.name() + "].");
         while (textList.size() < elem) {
-            String ch = arr[rand.nextInt(arrayLen)];
-            if (!textList.contains(ch)) {
-                textList.add(ch);
+            String s = arr[rand.nextInt(arrayLen)];
+            if (!textList.contains(s)) {
+                textList.add(s);
             }
         }
         int x = 0;
@@ -696,11 +697,12 @@ public class MatchPair extends AppFrame {
         // first 3 element in sequence must be > 2
         Arrays.stream(seq).forEach(i -> {
             for (int j = 0; j < i; j++) {
-                String text = textList.get(t.getAndIncrement());
+                String textCode = textList.get(t.getAndIncrement());
+                String text = textCode;
                 if (!charsPT) {
-                    text = Utils.getUnicodeStr(text);
+                    text = Utils.getUnicodeStr(textCode);
                 }
-                list.add(new GameButton(text, colors[k.intValue()], this));
+                list.add(new GameButton(text, textCode, colors[k.intValue()], this));
             }
             k.getAndIncrement();
         });
@@ -777,7 +779,7 @@ public class MatchPair extends AppFrame {
     }
 
     private void updateLevel() {
-        lblLevel.setText(UIName.BTN_LEVEL.name + SPACE + gameLevel);
+        lblLevel.setText(UIName.BTN_LEVEL.name + SPACE + gameLevel + SPACE + pairType.name());
     }
 
     private void updateScore() {
@@ -1072,10 +1074,10 @@ public class MatchPair extends AppFrame {
         Collections.shuffle(gameBtnsRandomize);
         int r = 0, c = 0;
         for (GameButton b : gameBtnsRandomize) {
-            Character ch = b.getText().charAt(0);
-            if (gamePairs.containsKey(ch)) {
+            String textCode = b.getTextCode();
+            if (gamePairs.containsKey(textCode)) {
                 b.setGamePosition(r, c);
-                gamePairs.get(ch).add(b);
+                gamePairs.get(textCode).add(b);
             }
             btnsPanel.add(b);
             c++;

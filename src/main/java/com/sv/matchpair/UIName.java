@@ -9,7 +9,7 @@ public enum UIName {
     BTN_USER("Hi", 'u', "Username, click to change"),
     LBL_USER("", 'r', "Set Username. Hit enter to save & ESC to cancel"),
     BTN_START("Start", 's', "Start/Stop the game"),
-    BTN_LEVEL("Level", 'v', "Present level of the game"),
+    BTN_LEVEL("Lvl", 'v', "Present level/type of the game"),
     BTN_PAUSE("Pause", 'p', "Pause/Resume the game"),
     LBL_SCORE("Score", 'l', "Score of the game"),
     LBL_TIME("Time", 'm', "Time remaining of the game"),
