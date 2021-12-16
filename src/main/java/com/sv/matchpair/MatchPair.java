@@ -15,6 +15,7 @@ import com.sv.swingui.UIConstants;
 import com.sv.swingui.component.*;
 import com.sv.swingui.component.table.AppTable;
 import com.sv.swingui.component.table.AppTableHeaderToolTip;
+import com.sv.swingui.component.table.CellRenderer;
 import com.sv.swingui.component.table.CellRendererCenterAlign;
 
 import javax.swing.*;
@@ -145,7 +146,7 @@ public class MatchPair extends AppFrame {
         logger.setSimpleClassName(true);
 
         super.setLogger(logger);
-        CENTER_RENDERER.setShowSameTipOnRow(false);
+        CENTER_RENDERER.setShowSameTipOnRow(true);
 
         List<WindowChecks> windowChecks = new ArrayList<>();
         windowChecks.add(WindowChecks.WINDOW_ACTIVE);
@@ -521,8 +522,8 @@ public class MatchPair extends AppFrame {
     }
 
     private void setAllTables() {
-        String[] topScoreCols = new String[]{"Top Score", "Date", "Accuracy", "Level"};
-        String[] recentScoreCols = new String[]{"Recent Score", "Date", "Accuracy", "Level"};
+        String[] topScoreCols = new String[]{"Top Score", "Date"};
+        String[] recentScoreCols = new String[]{"Recent Score", "Date"};
         String[] userCols = new String[]{"#", "User", "Top Score"};
         String[] userColsTT = new String[]{"#", "Set user by double click or right click", "Top Score"};
 
@@ -602,20 +603,23 @@ public class MatchPair extends AppFrame {
     private void loadTableData() {
         GameScores gs = getUserGameScores();
         if (gs != null) {
-            populateScoreTbl(gs.getTopScores(), topScoreModel);
-            populateScoreTbl(gs.getRecentScores(), recentScoreModel);
+            populateScoreTbl(gs.getTopScores(), topScoreModel, tblTopScore);
+            populateScoreTbl(gs.getRecentScores(), recentScoreModel, tblRecentScore);
         }
         populateUsersTopScore(userModel);
+        ((CellRenderer)(tblTopScore.getColumnModel().getColumn(0).getCellRenderer())).setToolTipText("gs.shortString()");
+        ((CellRenderer)(tblRecentScore.getColumnModel().getColumn(0).getCellRenderer())).setToolTipText("gs.shortString()");
     }
 
-    private void populateScoreTbl(List<GameScore> list, DefaultTableModel model) {
+    private void populateScoreTbl(List<GameScore> list, DefaultTableModel model, AppTable tbl) {
         // empty
         model.setRowCount(0);
         int sz = list.size();
         for (int i = 0; i < sz; i++) {
             if (i < DEFAULT_TABLE_ROWS - 1) {
                 GameScore gs = list.get(i);
-                model.addRow(new String[]{gs.getScore(), gs.getDate(), gs.getAccuracy(), gs.getLevel()});
+                model.addRow(new String[]{gs.getScore(), gs.getDate()});
+                tbl.addRowTooltip(new String[]{gs.shortString()});
             }
         }
         if (DEFAULT_TABLE_ROWS > sz) {
@@ -1251,8 +1255,8 @@ public class MatchPair extends AppFrame {
             loadTableData();
         } else {
             // existing user changed, no need to load all users data
-            populateScoreTbl(getUserTopScores(), topScoreModel);
-            populateScoreTbl(getUserRecentScores(), recentScoreModel);
+            populateScoreTbl(getUserTopScores(), topScoreModel, tblTopScore);
+            populateScoreTbl(getUserRecentScores(), recentScoreModel, tblRecentScore);
         }
     }
 
