@@ -607,13 +607,12 @@ public class MatchPair extends AppFrame {
             populateScoreTbl(gs.getRecentScores(), recentScoreModel, tblRecentScore);
         }
         populateUsersTopScore(userModel);
-        ((CellRenderer)(tblTopScore.getColumnModel().getColumn(0).getCellRenderer())).setToolTipText("gs.shortString()");
-        ((CellRenderer)(tblRecentScore.getColumnModel().getColumn(0).getCellRenderer())).setToolTipText("gs.shortString()");
     }
 
     private void populateScoreTbl(List<GameScore> list, DefaultTableModel model, AppTable tbl) {
         // empty
         model.setRowCount(0);
+        tbl.emptyRowTootips();
         int sz = list.size();
         for (int i = 0; i < sz; i++) {
             if (i < DEFAULT_TABLE_ROWS - 1) {
