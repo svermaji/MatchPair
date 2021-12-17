@@ -21,6 +21,7 @@
 * It's a GAME !!!
 * User can start game that is for 80 seconds
 * Shows graph with tooltip and options to change it
+* Each user will have its own password
 * User can be changed from existing list using right click menu or double click
 * User can be deleted but needs admin password which can be setup from menu
 * User can be select pair types - Characters, Symbols or Smileys

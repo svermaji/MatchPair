@@ -144,6 +144,7 @@ public class MatchPair extends AppFrame {
         loadGameConfigs();
         loadGameScores();
         logger.setSimpleClassName(true);
+        setEchoChar('*');
 
         super.setLogger(logger);
         CENTER_RENDERER.setShowSameTipOnRow(true);
@@ -268,7 +269,7 @@ public class MatchPair extends AppFrame {
         enableControls();
         SwingUtils.getInFocus(btnStart);
         if (!Utils.hasValue(username)) {
-            username = "default";
+            username = ADMIN_UN;
         }
         if (gameScores.isEmpty()) {
             storeAndLoad();
@@ -294,6 +295,10 @@ public class MatchPair extends AppFrame {
         AppMenuItem miChangePwd = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
         menu.add(miChangePwd);
         miChangePwd.addActionListener(e -> showChangePwdScreen());
+        uin = UIName.MI_CHANGEMYPWD;
+        AppMenuItem miChangeMyPwd = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
+        menu.add(miChangeMyPwd);
+        miChangeMyPwd.addActionListener(e -> showChangePwdScreen(username, true));
         menu.addSeparator();
         uin = UIName.MI_PAIR_TYPES;
         AppMenu miPT = new AppMenu(uin.name, uin.mnemonic, uin.tip);
@@ -344,6 +349,7 @@ public class MatchPair extends AppFrame {
         addBindings();
         updateUNAutoComplete();
         showHelp();
+        setUsername(username);
 
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
     }
@@ -545,7 +551,10 @@ public class MatchPair extends AppFrame {
         tblUserMISetUser.addActionListener(evt -> setUsernameFromUser());
         uin = UIName.MI_DELUSER;
         tblUserMIDelUser = new AppMenuItem(uin.name, uin.mnemonic);
-        tblUserMIDelUser.addActionListener(evt -> showLockScreen());
+        tblUserMIDelUser.addActionListener(evt -> {
+            usernameForPwd = ADMIN_UN;
+            showLockScreen();
+        });
         tblUsersPopupMenu.add(tblUserMISetUser);
         tblUsersPopupMenu.add(tblUserMIDelUser);
         // sets the popup menu for the table
@@ -612,7 +621,7 @@ public class MatchPair extends AppFrame {
     private void populateScoreTbl(List<GameScore> list, DefaultTableModel model, AppTable tbl) {
         // empty
         model.setRowCount(0);
-        tbl.emptyRowTootips();
+        tbl.emptyRowTooltips();
         int sz = list.size();
         for (int i = 0; i < sz; i++) {
             if (i < DEFAULT_TABLE_ROWS - 1) {
@@ -1233,6 +1242,8 @@ public class MatchPair extends AppFrame {
             // to refresh
             showHistory();
         }
+        usernameForPwd = username;
+        showLockScreen();
     }
 
     private void saveUsername() {
@@ -1251,12 +1262,9 @@ public class MatchPair extends AppFrame {
     private void storeAndLoad() {
         if (!gameScores.containsKey(getUsernameForMap())) {
             gameScores.put(getUsernameForMap(), new GameScores(username, null));
-            loadTableData();
-        } else {
-            // existing user changed, no need to load all users data
-            populateScoreTbl(getUserTopScores(), topScoreModel, tblTopScore);
-            populateScoreTbl(getUserRecentScores(), recentScoreModel, tblRecentScore);
         }
+        // reload tooltips for new data
+        loadTableData();
     }
 
     private void doNotSaveUsername() {

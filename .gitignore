@@ -14,7 +14,7 @@ test-*.txt
 *.log
 
 # Lock file
-secret.lock
+*secret.lock
 
 # BlueJ files
 *.ctxt
