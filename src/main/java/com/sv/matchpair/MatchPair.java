@@ -15,7 +15,6 @@ import com.sv.swingui.UIConstants;
 import com.sv.swingui.component.*;
 import com.sv.swingui.component.table.AppTable;
 import com.sv.swingui.component.table.AppTableHeaderToolTip;
-import com.sv.swingui.component.table.CellRenderer;
 import com.sv.swingui.component.table.CellRendererCenterAlign;
 
 import javax.swing.*;
@@ -51,7 +50,7 @@ public class MatchPair extends AppFrame {
      */
     public enum Configs {
         AppFontSize, GameBtnFontSize, CNFIdx, Username, LineJoinsPointsCenter,
-        DrawBaseLines, FirstPointOnBaseLine, PairType
+        DrawBaseLines, FirstPointOnBaseLine, PairType, NoUserPwd
     }
 
     public enum PairType {
@@ -107,6 +106,7 @@ public class MatchPair extends AppFrame {
 
     private Status gameStatus = Status.NOT_STARTED;
     private PairType pairType;
+    private boolean noUserPwd;
     private String username, fontName;
     private int gameLevel = 1, gameScore, gameAccuracy, cnfIdx = 0, gameBtnFontSize,
             totalCorrectPairs, totalWrongPairs;
@@ -291,6 +291,10 @@ public class MatchPair extends AppFrame {
         menu.add(SwingUtils.getAppFontMenu(this, this, appFontSize, logger));
         menu.add(SwingUtils.getLineGraphMenu(this, graphPanel, logger));
         menu.addSeparator();
+        uin = UIName.MI_NOUSERPWD;
+        AppCheckBoxMenuItem miNoUserPwd = new AppCheckBoxMenuItem(uin.name, noUserPwd, uin.mnemonic, uin.tip);
+        menu.add(miNoUserPwd);
+        miNoUserPwd.addActionListener(e -> changeNoUserPwd(miNoUserPwd.isSelected()));
         uin = UIName.MI_CHANGEPWD;
         AppMenuItem miChangePwd = new AppMenuItem(uin.name, uin.mnemonic, uin.tip);
         menu.add(miChangePwd);
@@ -352,6 +356,22 @@ public class MatchPair extends AppFrame {
         setUsername(username);
 
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
+    }
+
+    private void changeNoUserPwd(boolean val) {
+        usernameForPwd = ADMIN_UN;
+        Map<String, String> params = new ConcurrentHashMap<>();
+        params.put(PRM_NAME_ACTION, PRM_VAL_NOPWD);
+        params.put(PRM_NOPWD_ACTION, val + EMPTY);
+        setAuthenticationParams(params);
+        showLockScreen();
+    }
+
+    private void changeNoUserPwdAction(boolean val) {
+        noUserPwd = val;
+        if (noUserPwd) {
+            gameScores.values().forEach(g -> deleteUserSecretFile(g.getUsername()));
+        }
     }
 
     private boolean isCharsPairType() {
@@ -553,6 +573,9 @@ public class MatchPair extends AppFrame {
         tblUserMIDelUser = new AppMenuItem(uin.name, uin.mnemonic);
         tblUserMIDelUser.addActionListener(evt -> {
             usernameForPwd = ADMIN_UN;
+            Map<String, String> params = new ConcurrentHashMap<>();
+            params.put(PRM_NAME_ACTION, PRM_VAL_DELUSER);
+            setAuthenticationParams(params);
             showLockScreen();
         });
         tblUsersPopupMenu.add(tblUserMISetUser);
@@ -583,17 +606,22 @@ public class MatchPair extends AppFrame {
         tblPanel.setBorder(EMPTY_BORDER);
     }
 
-    public void authenticationSuccess(String username) {
-        if (isAdminUser(username)) {
-            deleteUser();
+    public void authenticationSuccess(Map<String, String> params) {
+        logger.info("Params in authenticationSuccess " + params);
+        if (isAdminUser(params.get(PRM_UN))) {
+            if (params.get(PRM_NAME_ACTION).equals(PRM_VAL_DELUSER)) {
+                deleteUser();
+            } else if (params.get(PRM_NAME_ACTION).equals(PRM_VAL_NOPWD)) {
+                changeNoUserPwdAction(Utils.getBoolean(params.get(PRM_NOPWD_ACTION), false));
+            }
         } else {
             setUsernameInApp();
         }
     }
 
-    public void pwdChangedStatus(boolean pwdChanged, String username) {
+    public void pwdChangedStatus(boolean pwdChanged, Map<String, String> params) {
         logger.info("password change status [" + pwdChanged + "]");
-        if (pwdChanged && !isAdminUser(username)) {
+        if (pwdChanged && !isAdminUser(params.get(PRM_UN))) {
             setUsernameInApp();
         }
     }
@@ -927,10 +955,12 @@ public class MatchPair extends AppFrame {
             ptCfg = PairType.Chars.name();
         }
         pairType = PairType.valueOf(ptCfg);
+        noUserPwd = configs.getBooleanConfig(Configs.NoUserPwd.name());
         logger.info("All configs: cnfIdx [" + cnfIdx +
                 "], appFontSize [" + appFontSize +
                 "], gameBtnFontSize [" + gameBtnFontSize +
                 "], pairType [" + ptCfg +
+                "], noUserPwd [" + noUserPwd +
                 "], username " + Utils.addBraces(username));
     }
 
@@ -1243,8 +1273,13 @@ public class MatchPair extends AppFrame {
 
     private void setUsername(String un) {
         username = Utils.convertToTitleCase(un);
-        usernameForPwd = username;
-        showLockScreen();
+        if (noUserPwd) {
+            usernameForPwd = ADMIN_UN;
+            setUsernameInApp();
+        } else {
+            usernameForPwd = username;
+            showLockScreen();
+        }
     }
 
     private void setUsernameInApp() {
@@ -1413,5 +1448,9 @@ public class MatchPair extends AppFrame {
 
     public String getPairType() {
         return pairType.name();
+    }
+
+    public String getNoUserPwd() {
+        return noUserPwd + "";
     }
 }

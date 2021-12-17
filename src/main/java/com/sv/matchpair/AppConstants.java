@@ -26,6 +26,10 @@ public final class AppConstants {
     public static final String SCORE_DATA_SEP_FOR_SPLIT = Constants.SLASH + SCORE_DATA_SEP;
     public static final String SCORE_SEP = Constants.SEMI_COLON;
     public static final String PROP_SCORES_SUFFIX = "-scores";
+    public static final String PRM_NAME_ACTION = "action";
+    public static final String PRM_VAL_NOPWD = "no-pwd";
+    public static final String PRM_NOPWD_ACTION = "no-pwd";
+    public static final String PRM_VAL_DELUSER = "delete-user";
 
     // 40 in count
     public static final String[] GAME_SMILEYS = {

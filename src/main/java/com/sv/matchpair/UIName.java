@@ -21,6 +21,7 @@ public enum UIName {
     MI_SETUSER("Set user", 't', "Set user"),
     MI_DELUSER("Delete user", 'e', "Delete user - need password"),
     BTN_HISTORY("History", 'y', "Scores history"),
+    MI_NOUSERPWD("No password for users", 'w', "No password is required for users"),
     MI_CHANGEPWD("Change password", 'd', "Change or set Admin password"),
     MI_CHANGEMYPWD("Change my password", 'g', "Change or set user password"),
     MI_HELP("Help", 'h', "Help about game"),
