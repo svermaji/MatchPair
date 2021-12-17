@@ -583,21 +583,32 @@ public class MatchPair extends AppFrame {
         tblPanel.setBorder(EMPTY_BORDER);
     }
 
-    public void authenticationSuccess() {
-        deleteUser();
+    public void authenticationSuccess(String username) {
+        if (isAdminUser(username)) {
+            deleteUser();
+        } else {
+            setUsernameInApp();
+        }
     }
 
-    public void pwdChangedStatus(boolean pwdChanged) {
+    public void pwdChangedStatus(boolean pwdChanged, String username) {
         logger.info("password change status [" + pwdChanged + "]");
+        if (pwdChanged && !isAdminUser(username)) {
+            setUsernameInApp();
+        }
     }
 
     private void deleteUser() {
-        logger.info("in delete user");
         String un = tblUsers.getValueAt(tblUsers.getSelectedRow(), 1).toString();
+        logger.info("Deleting user " + Utils.addBraces(un));
         if (Utils.hasValue(un)) {
-            logger.info("Deleting user [" + un + "]");
+            deleteUserSecretFile(un);
             removeFromGameScores(un);
         }
+    }
+
+    public void escOnchangePwdScreen() {
+        doNotSaveUsername();
     }
 
     private void removeFromGameScores(String k) {
@@ -1232,6 +1243,11 @@ public class MatchPair extends AppFrame {
 
     private void setUsername(String un) {
         username = Utils.convertToTitleCase(un);
+        usernameForPwd = username;
+        showLockScreen();
+    }
+
+    private void setUsernameInApp() {
         btnUser.setText(UIName.BTN_USER.name + SPACE + username);
         txtUser.setText(username);
         // just to hide controls
@@ -1242,8 +1258,6 @@ public class MatchPair extends AppFrame {
             // to refresh
             showHistory();
         }
-        usernameForPwd = username;
-        showLockScreen();
     }
 
     private void saveUsername() {
