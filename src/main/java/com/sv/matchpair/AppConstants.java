@@ -1,7 +1,11 @@
 package com.sv.matchpair;
 
 import com.sv.core.Constants;
+import com.sv.swingui.SwingUtils;
+import com.sv.swingui.UIConstants;
 
+import javax.swing.*;
+import javax.swing.border.*;
 import java.awt.*;
 
 public final class AppConstants {
@@ -9,6 +13,11 @@ public final class AppConstants {
     private AppConstants() {
     }
 
+    public static final Border outBorder =
+            new EmptyBorder(new Insets(1, 1, 1, 1));
+    public static final Border inBorder = new GameButtonBorder(2);
+    public static final Border GAMEBTN_BORDER =
+            BorderFactory.createCompoundBorder(outBorder, inBorder);
     public static final int BTNS_WIDTH = 300;
     public static final int BTNS_HEIGHT = 300;
     public static final int GRAPH_POINTS_TO_DRAW_LIMIT = 10;
