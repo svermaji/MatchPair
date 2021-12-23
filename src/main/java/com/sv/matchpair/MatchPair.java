@@ -1327,15 +1327,27 @@ public class MatchPair extends AppFrame {
         return Utils.hasValue(username) && username.length() < MAX_NAME;
     }
 
+    private boolean isOkToStart() {
+        if (!noUserPwd) {
+            usernameForPwd = username;
+            return isSecretFileExists();
+        }
+        return true;
+    }
+
     private void startGame() {
-        if (!isGameRunning()) {
-            btnStart.setText("Stop");
-            startNewGame();
-            disableControls();
+        if (isOkToStart()) {
+            if (!isGameRunning()) {
+                btnStart.setText("Stop");
+                startNewGame();
+                disableControls();
+            } else {
+                btnStart.setText(UIName.BTN_START.name);
+                stopGame();
+                enableControls();
+            }
         } else {
-            btnStart.setText(UIName.BTN_START.name);
-            stopGame();
-            enableControls();
+            showLockScreen();
         }
     }
 
