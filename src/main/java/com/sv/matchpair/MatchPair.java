@@ -1052,7 +1052,7 @@ public class MatchPair extends AppFrame {
     }
 
     public void updateWaitTime() {
-        if (gameWaitTime == 0) {
+        if (gameWaitTime <= 0) {
             cancelTimers();
             setGameScreen();
         } else {
