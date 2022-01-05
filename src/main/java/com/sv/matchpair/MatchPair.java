@@ -3,6 +3,7 @@ package com.sv.matchpair;
 import com.sv.core.Constants;
 import com.sv.core.Utils;
 import com.sv.core.config.DefaultConfigs;
+import com.sv.core.exception.AppException;
 import com.sv.core.logger.MyLogger;
 import com.sv.matchpair.task.AppFontChangerTask;
 import com.sv.matchpair.task.GameTimerTask;
@@ -78,7 +79,6 @@ public class MatchPair extends AppFrame {
         }
     }
 
-    private MyLogger logger;
     private DefaultConfigs configs;
     private Map<String, GameInfo> gameInfos;
     private Map<String, GameScores> gameScores;
@@ -134,7 +134,6 @@ public class MatchPair extends AppFrame {
      * This method initializes the form.
      */
     private void initComponents() {
-        logger = MyLogger.createLogger(getClass());
         configs = new DefaultConfigs(logger, Utils.getConfigsAsArr(Configs.class));
         gameInfos = new ConcurrentHashMap<>();
         gameScores = new ConcurrentHashMap<>();
@@ -146,7 +145,6 @@ public class MatchPair extends AppFrame {
         logger.setSimpleClassName(true);
         setEchoChar('*');
 
-        super.setLogger(logger);
         CENTER_RENDERER.setShowSameTipOnRow(true);
 
         List<WindowChecks> windowChecks = new ArrayList<>();
@@ -353,7 +351,9 @@ public class MatchPair extends AppFrame {
         addBindings();
         updateUNAutoComplete();
         showHelp();
-        setUsername(username);
+        if (isSingleUser()) {
+            setUsername(username);
+        }
 
         new Timer().schedule(new AppFontChangerTask(this), SEC_1);
     }
@@ -646,6 +646,10 @@ public class MatchPair extends AppFrame {
             setUsername(gameScores.get(firstKey).getUsername());
             loadTableData();
         }
+    }
+
+    private boolean isSingleUser() {
+        return gameScores.size() == 1;
     }
 
     private void loadTableData() {
@@ -946,7 +950,7 @@ public class MatchPair extends AppFrame {
         cnfIdx = configs.getIntConfig(Configs.CNFIdx.name());
         appFontSize = configs.getIntConfig(Configs.AppFontSize.name());
         username = configs.getConfig(Configs.Username.name());
-        if (!Utils.hasValue(username)) {
+        if (!Utils.hasValue(username) || !isSingleUser()) {
             username = "default";
         }
         gameBtnFontSize = configs.getIntConfig(Configs.GameBtnFontSize.name());
