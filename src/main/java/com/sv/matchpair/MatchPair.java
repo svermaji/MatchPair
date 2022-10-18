@@ -1,12 +1,15 @@
-package com.sv.timestable;
+package com.sv.matchpair;
 
 import com.sv.core.Constants;
 import com.sv.core.Utils;
 import com.sv.core.config.DefaultConfigs;
-import com.sv.timestable.task.AppFontChangerTask;
-import com.sv.timestable.task.GameTimerTask;
-import com.sv.timestable.task.GameCompletedTask;
-import com.sv.timestable.task.WaitTimerTask;
+import com.sv.core.exception.AppException;
+import com.sv.core.logger.MyLogger;
+import com.sv.matchpair.task.AppFontChangerTask;
+import com.sv.matchpair.task.GameTimerTask;
+import com.sv.matchpair.task.GameCompletedTask;
+import com.sv.matchpair.task.WaitTimerTask;
+import com.sv.runcmd.RunCommand;
 import com.sv.swingui.KeyActionDetails;
 import com.sv.swingui.SwingUtils;
 import com.sv.swingui.UIConstants;
@@ -30,13 +33,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.sv.core.Constants.*;
+import static com.sv.matchpair.AppConstants.*;
+import static com.sv.matchpair.AppUtils.lastButton;
 import static com.sv.swingui.UIConstants.*;
 import static java.util.stream.Collectors.toMap;
 
 /**
  * Java Game as MatchPair
  */
-public class TimesTable extends AppFrame {
+public class MatchPair extends AppFrame {
 
     /**
      * This is config and program will search getter
@@ -45,16 +50,40 @@ public class TimesTable extends AppFrame {
      * e.g. if enum is Xyz then when storing getXyz will be called
      */
     public enum Configs {
-        AppFontSize, CNFIdx, TablesRange, TimeRange, TotalQuestions, TimeOrCount
+        AppFontSize, GameBtnFontSize, CNFIdx, Username, LineJoinsPointsCenter,
+        DrawBaseLines, FirstPointOnBaseLine, PairType, NoUserPwd
+    }
+
+    public enum PairType {
+        Chars, Symbols, Smileys
     }
 
     public enum Status {
         NOT_STARTED, START, PAUSED, AUTO_PAUSED, STOP
     }
 
+    public enum GameScreens {
+        help, wait, wrong, game, history, none
+    }
+
+    public enum AppPaths {
+        scoresLoc("./src/main/resources/scores.config"),
+        gameConfigsLoc("./src/main/resources/game-configs"),
+        openHelpLoc("./src/main/resources/show-help.bat"),
+        gameSeqLoc("./src/main/resources/game-sequences.config");
+
+        String val;
+
+        AppPaths(String val) {
+            this.val = val;
+        }
+    }
+
     private DefaultConfigs configs;
     private Map<String, GameInfo> gameInfos;
     private Map<String, GameScores> gameScores;
+    private Map<String, List<GameButton>> gamePairs;
+
     private final JPopupMenu tblUsersPopupMenu = new JPopupMenu();
     private AppMenuItem tblUserMISetUser, tblUserMIDelUser;
     private TitledBorder titledBorder;
@@ -76,6 +105,7 @@ public class TimesTable extends AppFrame {
     private GameInfo gameInfo;
 
     private Status gameStatus = Status.NOT_STARTED;
+    private PairType pairType;
     private boolean noUserPwd;
     private String username, fontName;
     private int gameLevel = 1, gameScore, gameAccuracy, cnfIdx = 0, gameBtnFontSize,
@@ -93,10 +123,10 @@ public class TimesTable extends AppFrame {
     private int[][] gameSequences;
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new com.sv.matchpair.MathPractise().initComponents());
+        SwingUtilities.invokeLater(() -> new MatchPair().initComponents());
     }
 
-    public TimesTable() {
+    public MatchPair() {
         super("Match Pair");
     }
 
@@ -331,8 +361,8 @@ public class TimesTable extends AppFrame {
     private void changeNoUserPwd(boolean val) {
         usernameForPwd = ADMIN_UN;
         Map<String, String> params = new ConcurrentHashMap<>();
-        params.put(AppConstants.PRM_NAME_ACTION, AppConstants.PRM_VAL_NOPWD);
-        params.put(AppConstants.PRM_NOPWD_ACTION, val + EMPTY);
+        params.put(PRM_NAME_ACTION, PRM_VAL_NOPWD);
+        params.put(PRM_NOPWD_ACTION, val + EMPTY);
         setAuthenticationParams(params);
         showLockScreen();
     }
@@ -370,8 +400,8 @@ public class TimesTable extends AppFrame {
         if (graphPanel != null) {
             Font f = SwingUtils.getPlainNewFont(fontName, appFontSize);
             graphPanel.setGraphFont(f);
-            graphPanel.setLineWidth(AppConstants.GRAPH_LINE_WIDTH);
-            graphPanel.setPointWidth(AppConstants.GRAPH_POINT_WIDTH);
+            graphPanel.setLineWidth(GRAPH_LINE_WIDTH);
+            graphPanel.setPointWidth(GRAPH_POINT_WIDTH);
             graphPanel.setFontColor(fg);
             graphPanel.setPointColor(fg);
             graphPanel.setLineColor(bg);
@@ -382,10 +412,10 @@ public class TimesTable extends AppFrame {
     private List<LineGraphPanelData> prepareGraphData(List<GameScore> scores) {
         List<LineGraphPanelData> data = new ArrayList<>();
         List<GameScore> scoresForGraph = new ArrayList<>();
-        scores.stream().limit(AppConstants.GRAPH_POINTS_TO_DRAW_LIMIT).forEach(scoresForGraph::add);
+        scores.stream().limit(GRAPH_POINTS_TO_DRAW_LIMIT).forEach(scoresForGraph::add);
         Collections.reverse(scoresForGraph);
         // returning last GRAPH_POINT_LIMIT only
-        scoresForGraph.stream().limit(AppConstants.GRAPH_POINTS_TO_DRAW_LIMIT).forEach(s -> {
+        scoresForGraph.stream().limit(GRAPH_POINTS_TO_DRAW_LIMIT).forEach(s -> {
             data.add(new LineGraphPanelData(s.getScoreAsInt(), s.shortString(), true, false));
         });
         return data;
@@ -544,7 +574,7 @@ public class TimesTable extends AppFrame {
         tblUserMIDelUser.addActionListener(evt -> {
             usernameForPwd = ADMIN_UN;
             Map<String, String> params = new ConcurrentHashMap<>();
-            params.put(AppConstants.PRM_NAME_ACTION, AppConstants.PRM_VAL_DELUSER);
+            params.put(PRM_NAME_ACTION, PRM_VAL_DELUSER);
             setAuthenticationParams(params);
             showLockScreen();
         });
@@ -579,10 +609,10 @@ public class TimesTable extends AppFrame {
     public void authenticationSuccess(Map<String, String> params) {
         logger.info("Params in authenticationSuccess " + params);
         if (isAdminUser(params.get(PRM_UN))) {
-            if (params.get(AppConstants.PRM_NAME_ACTION).equals(AppConstants.PRM_VAL_DELUSER)) {
+            if (params.get(PRM_NAME_ACTION).equals(PRM_VAL_DELUSER)) {
                 deleteUser();
-            } else if (params.get(AppConstants.PRM_NAME_ACTION).equals(AppConstants.PRM_VAL_NOPWD)) {
-                changeNoUserPwdAction(Utils.getBoolean(params.get(AppConstants.PRM_NOPWD_ACTION), false));
+            } else if (params.get(PRM_NAME_ACTION).equals(PRM_VAL_NOPWD)) {
+                changeNoUserPwdAction(Utils.getBoolean(params.get(PRM_NOPWD_ACTION), false));
             }
         } else {
             setUsernameInApp();
@@ -637,14 +667,14 @@ public class TimesTable extends AppFrame {
         tbl.emptyRowTooltips();
         int sz = list.size();
         for (int i = 0; i < sz; i++) {
-            if (i < AppConstants.DEFAULT_TABLE_ROWS - 1) {
+            if (i < DEFAULT_TABLE_ROWS - 1) {
                 GameScore gs = list.get(i);
                 model.addRow(new String[]{gs.getScore(), gs.getDate()});
                 tbl.addRowTooltip(new String[]{gs.shortString()});
             }
         }
-        if (AppConstants.DEFAULT_TABLE_ROWS > sz) {
-            int n = AppConstants.DEFAULT_TABLE_ROWS - sz;
+        if (DEFAULT_TABLE_ROWS > sz) {
+            int n = DEFAULT_TABLE_ROWS - sz;
             SwingUtils.createEmptyRows(model.getColumnCount(), n, model);
         }
     }
@@ -687,7 +717,7 @@ public class TimesTable extends AppFrame {
         int total = gi.getRows() * gi.getCols();
         List<GameButton> list = new ArrayList<>(total);
         List<String> textList = new ArrayList<>(total);
-        int elem = total - AppConstants.PAIRS_COUNT;
+        int elem = total - PAIRS_COUNT;
         Random rand = new Random();
         String[] arr = getGameChars();
         int arrayLen = arr.length;
@@ -700,14 +730,14 @@ public class TimesTable extends AppFrame {
         }
         int x = 0;
         // if sequence is GAME_SEQ_LIMIT_MAX then make two colors in same
-        for (int i = 0; i < AppConstants.PAIRS_COUNT; i++) {
+        for (int i = 0; i < PAIRS_COUNT; i++) {
             int seqE = seq[i];
-            if (seqE < AppConstants.GAME_SEQ_LIMIT_MIN) {
+            if (seqE < GAME_SEQ_LIMIT_MIN) {
                 i--;
             } else {
                 textList.add(x, textList.get(x));
                 gamePairs.put(textList.get(x), new ArrayList<>());
-                if (seqE > AppConstants.GAME_SEQ_LIMIT_MAX && i < AppConstants.PAIRS_COUNT - 1) {
+                if (seqE > GAME_SEQ_LIMIT_MAX && i < PAIRS_COUNT - 1) {
                     textList.add(x + 2, textList.get(x + 2));
                     i++;
                     gamePairs.put(textList.get(x + 2), new ArrayList<>());
@@ -735,13 +765,13 @@ public class TimesTable extends AppFrame {
     }
 
     private String[] getGameChars() {
-        String[] arr = AppConstants.GAME_CHARS;
+        String[] arr = GAME_CHARS;
         switch (pairType) {
             case Symbols:
-                arr = AppConstants.GAME_SYMBOLS;
+                arr = GAME_SYMBOLS;
                 break;
             case Smileys:
-                arr = AppConstants.GAME_SMILEYS;
+                arr = GAME_SMILEYS;
                 break;
         }
         return arr;
@@ -749,21 +779,21 @@ public class TimesTable extends AppFrame {
 
     public synchronized void checkGameButton(GameButton gb) {
         if (isGameRunning()) {
-            if (AppUtils.lastButton != null && !AppUtils.lastButton.isClicked()) {
-                AppUtils.lastButton = null;
+            if (lastButton != null && !lastButton.isClicked()) {
+                lastButton = null;
                 gb = null;
             }
-            if (AppUtils.lastButton != null && AppUtils.lastButton.isClicked() && gb.isClicked()
-                    && AppUtils.lastButton.getText().equals(gb.getText())) {
+            if (lastButton != null && lastButton.isClicked() && gb.isClicked()
+                    && lastButton.getText().equals(gb.getText())) {
                 gb.setVisible(false);
-                AppUtils.lastButton.setVisible(false);
-                AppUtils.lastButton = null;
+                lastButton.setVisible(false);
+                lastButton = null;
                 gb = null;
                 gamePairMatched++;
                 gameScore += gameInfo.getMatchScore();
                 updateScore();
                 totalCorrectPairs++;
-                if (gamePairMatched == AppConstants.PAIRS_COUNT) {
+                if (gamePairMatched == PAIRS_COUNT) {
                     logger.info("Matches done for user [" + username + "], game level [" + gameLevel + "], " +
                             "game score [" + gameScore + "]");
                     gameLevel++;
@@ -772,20 +802,20 @@ public class TimesTable extends AppFrame {
                     createButtons();
                 }
             } else {
-                if (AppUtils.lastButton != null && AppUtils.lastButton.isClicked() && gb.isClicked()
-                        && !(AppUtils.lastButton.getText().equals(gb.getText()))) {
+                if (lastButton != null && lastButton.isClicked() && gb.isClicked()
+                        && !(lastButton.getText().equals(gb.getText()))) {
                     logger.warn("Wrong match by user [" + username + "], game level [" + gameLevel + "], " +
                             "game score [" + gameScore + "], " +
-                            "button 1 [" + AppUtils.lastButton + "] and button 2 [" + gb + "]");
-                    AppUtils.lastButton = null;
+                            "button 1 [" + lastButton + "] and button 2 [" + gb + "]");
+                    lastButton = null;
                     gb = null;
                     gamePairMatched = 0;
                     totalWrongPairs++;
                     showWrongMatchScreen();
                 }
             }
-            if (AppUtils.lastButton == null && gb != null) {
-                AppUtils.lastButton = gb;
+            if (lastButton == null && gb != null) {
+                lastButton = gb;
             }
         }
     }
@@ -799,7 +829,7 @@ public class TimesTable extends AppFrame {
         // this wont impact by cancelTimers bcoz gameTime not changed
         gameWaitTime = 0;
         Timer t = new Timer();
-        t.scheduleAtFixedRate(new WaitTimerTask(this), AppConstants.WRONG_PAIR_MSG_TIME, SEC_1);
+        t.scheduleAtFixedRate(new WaitTimerTask(this), WRONG_PAIR_MSG_TIME, SEC_1);
         TIMERS.add(t);
     }
 
@@ -819,7 +849,7 @@ public class TimesTable extends AppFrame {
     private void loadGameScores() {
         Properties props = Utils.readPropertyFile(AppPaths.scoresLoc.val, logger);
         props.stringPropertyNames().forEach(k -> {
-            if (k.endsWith(AppConstants.PROP_SCORES_SUFFIX)) {
+            if (k.endsWith(PROP_SCORES_SUFFIX)) {
                 String v = props.getProperty(k);
                 String user = getUserFromProp(k);
                 if (gameScores.containsKey(getUsernameForMap(user))) {
@@ -1062,8 +1092,8 @@ public class TimesTable extends AppFrame {
         // setting hgap and vgap to make game 500x500
         int w = btnsPanel.getWidth();
         int h = btnsPanel.getHeight();
-        int hgap = (w - AppConstants.BTNS_WIDTH) / 2;
-        int vgap = (h - AppConstants.BTNS_HEIGHT) / 2;
+        int hgap = (w - BTNS_WIDTH) / 2;
+        int vgap = (h - BTNS_HEIGHT) / 2;
         btnsPanel.setBorder(new EmptyBorder(new Insets(vgap, hgap, vgap, hgap)));
         logger.info("Setting hgap/vgap [" + hgap + F_SLASH + vgap
                 + "] for buttons of width/height [" + w + F_SLASH + h + "]");
@@ -1074,8 +1104,8 @@ public class TimesTable extends AppFrame {
         gameAccuracy = 0;
         totalWrongPairs = 0;
         totalCorrectPairs = 0;
-        gameWaitTime = AppConstants.GAME_WAIT_TIME_SEC;
-        gameTime = AppConstants.GAME_TIME_SEC;
+        gameWaitTime = GAME_WAIT_TIME_SEC;
+        gameTime = GAME_TIME_SEC;
         gameStatus = Status.START;
         gameScore = 0;
         updateScore();
@@ -1150,8 +1180,8 @@ public class TimesTable extends AppFrame {
             List<GameButton> v = entry.getValue();
             GameButton b1 = v.get(0), b2 = v.get(1);
             if (b1.isVisible() && b2.isVisible()) {
-                b1.setBackground(AppConstants.GAME_BTN_CLICK_COLOR);
-                b2.setBackground(AppConstants.GAME_BTN_CLICK_COLOR);
+                b1.setBackground(GAME_BTN_CLICK_COLOR);
+                b2.setBackground(GAME_BTN_CLICK_COLOR);
                 break;
             }
         }
@@ -1192,7 +1222,7 @@ public class TimesTable extends AppFrame {
         enableControls();
         cancelTimers();
         gameLevel = 1;
-        gameTime = AppConstants.GAME_TIME_SEC;
+        gameTime = GAME_TIME_SEC;
         gameScore = 0;
         updateScore();
         updateLevel();
@@ -1206,7 +1236,7 @@ public class TimesTable extends AppFrame {
             gameCompleted();
             lblTime.setForeground(fg);
         }
-        if (gameTime <= AppConstants.ALARM_TIME_SEC && gameTime > 0) {
+        if (gameTime <= ALARM_TIME_SEC && gameTime > 0) {
             lblTime.setForeground(lblTime.getForeground() == fg ? Color.red : fg);
         }
         lblTime.setText(UIName.LBL_TIME.name + SPACE + Utils.formatTime(gameTime--));
@@ -1356,22 +1386,22 @@ public class TimesTable extends AppFrame {
     private void saveScores() {
         Properties prop = new Properties();
         gameScores.values().forEach(gs ->
-                prop.setProperty(gs.getUsername() + AppConstants.PROP_SCORES_SUFFIX, prepareScoreCsv(gs.getRecentScores())));
+                prop.setProperty(gs.getUsername() + PROP_SCORES_SUFFIX, prepareScoreCsv(gs.getRecentScores())));
         Utils.saveProperties(prop, AppPaths.scoresLoc.val, logger);
     }
 
     private String prepareScoreCsv(List<GameScore> score) {
         StringBuilder sb = new StringBuilder();
         score.forEach(s -> sb.append(s.getScore())
-                .append(AppConstants.SCORE_DATA_SEP)
+                .append(SCORE_DATA_SEP)
                 .append(s.getDate())
-                .append(AppConstants.SCORE_DATA_SEP)
+                .append(SCORE_DATA_SEP)
                 .append(s.getAccuracy())
-                .append(AppConstants.SCORE_DATA_SEP)
+                .append(SCORE_DATA_SEP)
                 .append(s.getLevel())
-                .append(AppConstants.SCORE_DATA_SEP)
+                .append(SCORE_DATA_SEP)
                 .append(s.getType())
-                .append(AppConstants.SCORE_SEP)
+                .append(SCORE_SEP)
         );
         return sb.toString();
     }

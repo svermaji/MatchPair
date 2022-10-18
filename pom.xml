@@ -9,14 +9,14 @@
         <version>1.0</version>
     </parent>
 
-    <artifactId>times-table</artifactId>
+    <artifactId>match-pair</artifactId>
     <version>1.0</version>
-    <name>Game math to practise times table</name>
+    <name>Game match pair</name>
 
     <dependencies>
         <dependency>
             <groupId>com.sv</groupId>
-            <artifactId>swing-ui</artifactId>
+            <artifactId>runcmd</artifactId>
             <version>2.0</version>
         </dependency>
     </dependencies>

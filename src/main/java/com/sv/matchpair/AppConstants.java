@@ -1,4 +1,4 @@
-package com.sv.timestable;
+package com.sv.matchpair;
 
 import com.sv.core.Constants;
 import com.sv.swingui.SwingUtils;
