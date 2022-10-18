@@ -1,4 +1,4 @@
-package com.sv.matchpair;
+package com.sv.timestable;
 
 import javax.swing.border.Border;
 import java.awt.*;

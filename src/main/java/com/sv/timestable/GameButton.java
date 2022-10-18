@@ -1,11 +1,8 @@
-package com.sv.matchpair;
+package com.sv.timestable;
 
 import com.sv.swingui.component.AppButton;
 
 import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.border.EtchedBorder;
-import javax.swing.border.LineBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;

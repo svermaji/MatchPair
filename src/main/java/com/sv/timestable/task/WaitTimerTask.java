@@ -1,14 +1,12 @@
-package com.sv.matchpair.task;
-
-import com.sv.matchpair.MatchPair;
+package com.sv.timestable.task;
 
 import java.util.TimerTask;
 
 public class WaitTimerTask extends TimerTask {
 
-    private final MatchPair mp;
+    private final com.sv.matchpair.MathPractise mp;
 
-    public WaitTimerTask(MatchPair mp) {
+    public WaitTimerTask(com.sv.matchpair.MathPractise mp) {
         this.mp = mp;
     }
 

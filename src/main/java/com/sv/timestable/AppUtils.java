@@ -1,4 +1,4 @@
-package com.sv.matchpair;
+package com.sv.timestable;
 
 import java.awt.*;
 import java.util.List;

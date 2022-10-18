@@ -1,6 +1,6 @@
-# MatchPair
+# TimesTable
 
-###### Game in Java for MatchPair. This game provides
+###### Game in Java for TimesTable. This game provides
 * Selective Attention<br>
   _Focus on a particular object while avoiding distractions_
 * Visual Recognition<br>
@@ -19,24 +19,9 @@
 
 ## Description
 * It's a GAME !!!
-* User can start game that is for 80 seconds
-* Shows graph with tooltip and options to change it
-* Each user will have its own password
-* User can be changed from existing list using right click menu or double click
-* User can be deleted but needs admin password which can be setup from menu
-* User can be select pair types - Characters, Symbols or Smileys
-* Game will be auto paused/resume on window lost/gain focus
-* At the end of game, next matching pair will be highlighted
-* If wrongly clicked if will warn user
-* Game rule - in each level you need to match 3 pairs and level will increase.
-    * If user clicks wrong level restarts.
-* User can Pause/Resume game.
-* Timer is provided and start warning when time is about to finish by flashing.
-* User can set font for application and game buttons. Color selection is also available
-* Username can be set and score per user will be stored along with high scores.
 
 #### Application Images
-* Application Game screen - Characters<br>
+* Application Game screen - Characters - TBC<br>
 ![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-18-dec-2021-chars.png)
 * Application Game screen - Symbols<br>
 ![Image of Yaktocat](https://github.com/svermaji/MatchPair/blob/master/app-images/app-image-18-dec-2021-symbols.png)

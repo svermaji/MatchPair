@@ -1,4 +1,4 @@
-package com.sv.matchpair;
+package com.sv.timestable;
 
 import java.util.ArrayList;
 import java.util.Comparator;

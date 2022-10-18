@@ -1,14 +1,12 @@
-package com.sv.matchpair.task;
-
-import com.sv.matchpair.MatchPair;
+package com.sv.timestable.task;
 
 import java.util.TimerTask;
 
 public class GameCompletedTask extends TimerTask {
 
-    private final MatchPair mp;
+    private final com.sv.matchpair.MathPractise mp;
 
-    public GameCompletedTask(MatchPair mp) {
+    public GameCompletedTask(com.sv.matchpair.MathPractise mp) {
         this.mp = mp;
     }
 

@@ -1,14 +1,12 @@
-package com.sv.matchpair.task;
-
-import com.sv.matchpair.MatchPair;
+package com.sv.timestable.task;
 
 import java.util.TimerTask;
 
 public class AppFontChangerTask extends TimerTask {
 
-    private final MatchPair mp;
+    private final com.sv.matchpair.MathPractise mp;
 
-    public AppFontChangerTask(MatchPair sbf) {
+    public AppFontChangerTask(com.sv.matchpair.MathPractise sbf) {
         this.mp = sbf;
     }
 
